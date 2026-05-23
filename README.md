@@ -32,8 +32,12 @@ graph TD
     Three -->|Interacción Visual| React
     Django -->|Mapeo de Modelos| ORM
     ORM -->|Consultas SQL / Puerto 5432| Postgres
+```
 
-    sequenceDiagram
+### 2. Flujo de Control para la Integración Continua (CI)
+
+```mermaid
+sequenceDiagram
     participant Dev as Desarrollador (Local)
     participant GH as GitHub Repository
     participant Action as GitHub Action (Robot CI)
@@ -50,5 +54,4 @@ graph TD
     Else Si hay errores
         Action-->>GH: Log de Error en Rojo (Fallo)
     End
-
-    
+```
