@@ -1,0 +1,29 @@
+# ========================
+# REGLAS DEL BACKEND (Django/Python)
+# ========================
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+# Bloquear archivos locales de bases de datos por si acaso
+*.sqlite3
+
+# ========================
+# REGLAS DEL FRONTEND (React/Vite/Node)
+# ========================
+node_modules/
+dist/
+dist-ssr/
+.eslintcache
+
+# ========================
+# REGLAS GLOBALES Y SECRETOS
+# ========================
+.env
+.env.local
+.vscode/
+.idea/
+*.log
+.DS_Store
