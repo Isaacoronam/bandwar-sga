@@ -13,25 +13,25 @@ De acuerdo con los lineamientos técnicos establecidos en la Fase #2, la arquite
 ```mermaid
 graph TD
     %% Componentes principales
-    subgraph Frontend [Aplicación Cliente - SPA]
-        React[React + Vite.js]
-        Three[Componentes 3D / Three.js]
+    subgraph Cliente [Cliente Navegador]
+        Three[Motor de Renderizado Three.js]
+        JS[Lógica de Interfaz JavaScript / Fetch]
+        Boot[Estilos Bootstrap 5]
     end
 
-    subgraph Backend [Servidor de Aplicación - REST API]
-        Django[Django Web Framework]
-        ORM[Django ORM]
+    subgraph Servidor [Servidor Django Framework - Arquitectura Híbrida]
+        VHTML[Vistas de Renderizado HTML]
+        VAPI[Vistas de Datos API REST]
+        ORM[ORM de Django]
     end
 
-    subgraph Almacenamiento [Capa de Datos Estructurada]
-        Postgres[(Base de Datos PostgreSQL)]
+    subgraph Persistencia [Capa de Datos]
+        Postgres[(Base de datos PostgreSQL)]
     end
 
     %% Flujos de conexión
-    React -->|Peticiones HTTP / JSON| Django
-    Three -->|Interacción Visual| React
-    Django -->|Mapeo de Modelos| ORM
-    ORM -->|Consultas SQL / Puerto 5432| Postgres
+    Cliente <-->|Intercambio Asíncrono HTTPS / JSON| Servidor
+    Servidor <-->|Lectura / Escritura| Persistencia
 ```
 
 ### 2. Flujo de Control para la Integración Continua (CI)
