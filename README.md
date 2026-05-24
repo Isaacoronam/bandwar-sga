@@ -8,6 +8,52 @@ Este es el repositorio central del prototipo **Bandwar SGA**, desarrollado como 
 
 De acuerdo con los lineamientos técnicos establecidos en la Fase #2, la arquitectura estructural y el flujo de datos del sistema se encuentran modelados directamente en código utilizando **Mermaid.js**.
 
+
+##  Instrucciones de Instalación y Despliegue Local
+
+Para garantizar la paridad de entornos y que el sistema pueda ejecutarse en cualquier máquina de desarrollo de forma limpia, siga los siguientes pasos:
+
+### 1. Prerrequisitos
+Asegúrese de tener instalado en su sistema:
+* Python 3.10 o superior
+* PostgreSQL 14 o superior (corriendo en el puerto 5432)
+
+### 2. Clonar el Repositorio y Ramas
+Clone el proyecto y muévase a la rama de integración:
+```bash
+git clone [https://github.com/isaacoronam/bandwar-sga.git](https://github.com/isaacoronam/bandwar-sga.git)
+cd bandwar-sga
+git checkout develop
+```
+### 3. Configuración del Entorno Virtual (Windows)
+Cree y active el entorno virtual para aislar las dependencias:
+```bash
+python -m venv venv
+.\venv\Scripts\Activate
+```
+### 4. Instalación de Dependencias
+Instale los paquetes requeridos por el proyecto:
+```bash
+pip install -r requirements.txt
+```
+### 5.Variables de Entorno (.env)
+Cree un archivo llamado .env en la raíz del proyecto (este archivo está protegido por .gitignore) y configure sus credenciales de base de datos local:
+```bash
+DB_NAME=banda
+DB_USER=tu_usuario_postgres
+DB_PASSWORD=tu_contraseña_postgres
+DB_HOST=localhost
+DB_PORT=5432
+SECRET_KEY=django-insecure-desarrollo-unefa
+DEBUG=True
+```
+### 6.Migraciones y Ejecución
+Cree la base de datos en PostgreSQL con el nombre bandwar_db, luego ejecute las migraciones del sistema e inicie el servidor de desarrollo:
+```bash
+python manage.py migrate
+python manage.py runserver
+```
+
 ### 1. Diagrama de Bloques y Flujo de Datos
 
 ```mermaid
