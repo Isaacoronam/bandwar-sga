@@ -1,0 +1,33 @@
+name: Pipeline de Integración Continua - Bandwar SGA
+
+# El robot se activará automáticamente cada vez que alguien abra un Pull Request hacia main
+on:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+    # Paso 1 obligatorio: Descargar el código del repositorio en el servidor virtual
+    - name: Descargar el código (Checkout)
+      uses: actions/checkout@v4
+
+    # Paso 2 obligatorio: Configurar el entorno de Python e instalar dependencias
+    - name: Configurar Python 3.11
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Instalar dependencias de Django
+      run: |
+        python -m pip install --upgrade pip
+        # Instala Django de forma directa para la prueba inicial del pipeline
+        pip install django psycopg2-binary
+
+    # Paso 3 obligatorio: Ejecutar verificación inicial (Prueba base)
+    - name: Ejecutar verificación de sintaxis (Linter básico)
+      run: |
+        # Este comando compila los archivos .py para verificar que no tengan errores de sintaxis o de tipado graves
+        python -m compileall .
