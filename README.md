@@ -3,7 +3,13 @@
 Este es el repositorio central del prototipo **Bandwar SGA**, desarrollado como solución tecnológica integral para la automatización, control de inventario y gestión del conocimiento de la banda de guerra de la UNEFA-Falcon.
 
 ---
+## 🎥 Demostración del Proyecto (Fase 2)
 
+[![Demostración Fase 2 Bandwar SGA](https://img.youtube.com/vi/NC2ADuhLshc/hqdefault.jpg)](https://youtu.be/NC2ADuhLshc)
+
+*Haz clic en la imagen para ver el video de inicialización, automatización y paridad de entornos en YouTube.*
+
+---
 ##  Arquitectura del Sistema (Doc-as-Code)
 
 De acuerdo con los lineamientos técnicos establecidos en la Fase #2, la arquitectura estructural y el flujo de datos del sistema se encuentran modelados directamente en código utilizando **Mermaid.js**.
