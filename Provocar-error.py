@@ -1,1 +1,0 @@
-print("hola, este es un error para probar el manejo de errores del pipeline
