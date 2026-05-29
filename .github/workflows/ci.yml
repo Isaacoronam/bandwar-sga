@@ -1,6 +1,6 @@
 name: Pipeline de Integración Continua - Bandwar SGA
 
-# El robot se activará automáticamente cada vez que alguien abra un Pull Request hacia main
+# El robot se activará automáticamente cada vez que alguien abra un Pull Request hacia main y develop
 on:
   pull_request:
     branches: [ main, develop ]
