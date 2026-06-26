@@ -1,0 +1,63 @@
+.intranet-navbar {
+  background: #1a1a2e;
+  border-bottom: 1px solid rgba(255, 215, 0, 0.12);
+  box-shadow: 0 10px 35px rgba(0, 0, 0, 0.15);
+}
+
+.intranet-navbar .navbar-brand {
+  gap: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #ffffff;
+}
+
+.navbar-logo {
+  width: 42px;
+  height: 42px;
+  object-fit: contain;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 0.2rem;
+}
+
+.brand-title {
+  color: #ffd700;
+  font-size: 1.15rem;
+}
+
+.intranet-navbar .nav-link {
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 0.95rem;
+  padding: 0.65rem 0.9rem;
+}
+
+.intranet-navbar .nav-link:hover,
+.intranet-navbar .nav-link.active {
+  color: #ffd700;
+}
+
+.intranet-navbar .dropdown-menu {
+  background: #1a1a2e;
+  border: 1px solid rgba(255, 215, 0, 0.18);
+}
+
+.intranet-navbar .dropdown-item {
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.intranet-navbar .dropdown-item:hover,
+.intranet-navbar .dropdown-item:focus {
+  background: rgba(255, 215, 0, 0.1);
+  color: #ffd700;
+}
+
+.user-dropdown .user-label {
+  font-weight: 600;
+}
+
+@media (max-width: 991px) {
+  .navbar-logo {
+    width: 36px;
+    height: 36px;
+  }
+}
