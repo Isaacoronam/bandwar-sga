@@ -13,6 +13,7 @@ function RegistroAlumnoForm({ show, onClose, refreshListaAlumnos, onSuccessToast
 
   // Estados locales sincronizados con el backend de Django
   const [cedula, setCedula] = useState(editando ? (alumnoParaEditar.cedula || '') : '');
+  const [cedulaError, setCedulaError] = useState('');
   const [nombre, setNombre] = useState(editando ? (alumnoParaEditar.nombre || alumnoParaEditar.first_name || '') : '');
   const [apellido, setApellido] = useState(editando ? (alumnoParaEditar.apellido || alumnoParaEditar.last_name || '') : '');
   const [email, setEmail] = useState(editando ? (alumnoParaEditar.email || '') : '');
@@ -30,6 +31,14 @@ function RegistroAlumnoForm({ show, onClose, refreshListaAlumnos, onSuccessToast
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+
+    // Validación: cédula debe tener entre 6 y 8 dígitos
+    const cedulaDigits = String(cedula).replace(/\D/g, '');
+    if (cedulaDigits.length < 6 || cedulaDigits.length > 8) {
+      setError('La cédula debe tener entre 6 y 8 dígitos');
+      setCedulaError('La cédula debe tener entre 6 y 8 dígitos');
+      return;
+    }
 
     if (getRol() !== 'PROFESOR') {
       setError('Acceso denegado: no tiene permisos de profesor');
@@ -151,15 +160,31 @@ function RegistroAlumnoForm({ show, onClose, refreshListaAlumnos, onSuccessToast
                 <label htmlFor="cedula" className="form-label fw-bold">Cédula</label>
                 <div className="input-group">
                   <span className="input-group-text bg-secondary text-white fw-bold">V-</span>
-                  <input 
-                    id="cedula" 
-                    className="form-control" 
-                    value={cedula} 
-                    onChange={(e) => setCedula(e.target.value)} 
+                  <input
+                    id="cedula"
+                    className={`form-control ${cedulaError ? 'is-invalid' : ''}`}
+                    value={cedula}
+                    onChange={(e) => {
+                      const cleaned = e.target.value.replace(/\D/g, '').slice(0, 8);
+                      setCedula(cleaned);
+                      if (cleaned.length > 0 && cleaned.length < 6) {
+                        setCedulaError('La cédula debe tener entre 6 y 8 dígitos');
+                      } else {
+                        setCedulaError('');
+                      }
+                      // Clear global error when user fixes input
+                      if (error && cleaned.length >= 6) setError('');
+                    }}
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    maxLength={8}
                     disabled={editando && getRol() !== 'PROFESOR'}
                     placeholder="Ej. 25123456"
                     required
                   />
+                  {cedulaError && (
+                    <div className="invalid-feedback">{cedulaError}</div>
+                  )}
                 </div>
                 <div className="form-text">
                   {editando && getRol() === 'PROFESOR' ? (
