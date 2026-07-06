@@ -589,8 +589,10 @@ function ProfesorDashboard() {
               <div className="card border-0 shadow-sm bg-info text-white h-100">
                 <div className="card-body text-center py-4">
                   <i className="bi bi-music-note-beamed display-4 mb-2"></i>
-                  <h2 className="fw-bold mb-0">{examenes.length}</h2>
-                  <p className="card-text opacity-75">Materiales en Biblioteca</p>
+                  <h2 className="fw-bold mb-0">0</h2>
+                  <p className="card-text opacity-75">
+                    Materiales en Biblioteca <span className="badge bg-warning text-dark ms-2 small">Próximamente</span>
+                  </p>
                 </div>
               </div>
             </div>
