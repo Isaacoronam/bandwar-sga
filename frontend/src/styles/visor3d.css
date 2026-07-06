@@ -301,16 +301,38 @@
   }
 }
 
+/* Responsive - Mobile */
 @media (max-width: 768px) {
   .visor-immersive-container {
-    padding: 1rem;
+    padding: 1.25rem;
   }
 
-  .visor-immersive-frame {
+  .visor-immersive-header {
+    flex-direction: column;
     gap: 1rem;
   }
 
-  .panel-card {
-    max-width: 100%;
+  .visor-immersive-frame {
+    gap: 1.25rem;
   }
+
+  .canvas-panel {
+    min-height: 420px;
+  }
+
+  .panel-card {
+    padding: 1.25rem;
+  }
+}
+
+/* Existing legacy styles kept for compatibility */
+.visor3d-container,
+.visor3d-header,
+.visor3d-content,
+.visor3d-sidebar,
+.info-panel,
+.panel-title,
+.info-content,
+.controls-info {
+  display: none;
 }
