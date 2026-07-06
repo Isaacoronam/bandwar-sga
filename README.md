@@ -43,48 +43,126 @@ Instale los paquetes requeridos por el proyecto:
 pip install -r requirements.txt
 ```
 ### 5.Variables de Entorno (.env)
-Cree un archivo llamado .env en la raíz del proyecto (este archivo está protegido por .gitignore) y configure sus credenciales de base de datos local:
+Cree un archivo llamado `.env` en la carpeta `backend/` (este archivo está protegido por .gitignore) y configure sus credenciales de base de datos local:
 ```bash
-DB_NAME=banda
+# Backend - Django
+DJANGO_SECRET_KEY=django-insecure-tu-llave-secreta-aqui
+DJANGO_DEBUG=True
+DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1
+
+# Base de Datos PostgreSQL
+DB_NAME=bandwar_db
 DB_USER=tu_usuario_postgres
 DB_PASSWORD=tu_contraseña_postgres
 DB_HOST=localhost
 DB_PORT=5432
-SECRET_KEY=django-insecure-desarrollo-unefa
-DEBUG=True
 ```
-### 6.Migraciones y Ejecución
-Cree la base de datos en PostgreSQL con el nombre bandwar_db, luego ejecute las migraciones del sistema e inicie el servidor de desarrollo:
+
+**Nota importante**: El archivo `.env.example` contiene variables de referencia. Nunca comitee archivos `.env` con credenciales reales.
+### 6. Base de Datos y Migraciones (Backend)
+Cree la base de datos en PostgreSQL con el nombre especificado en `.env`, luego ejecute las migraciones del sistema:
 ```bash
+# Desde el directorio raíz del proyecto
+cd backend
+
+# Ejecutar migraciones
 python manage.py migrate
-python manage.py runserver
+
+# (Opcional) Crear superusuario para el admin de Django
+python manage.py createsuperuser
 ```
+
+### 7. Instalación de Dependencias del Frontend
+En una nueva terminal, instale las dependencias del frontend:
+```bash
+cd frontend
+npm install
+```
+
+### 8. Ejecución Local del Sistema Completo
+
+**Terminal 1 - Backend (Django Server)**:
+```bash
+cd backend
+python manage.py runserver
+# El backend estará disponible en http://localhost:8000
+```
+
+**Terminal 2 - Frontend (Vite Dev Server)**:
+```bash
+cd frontend
+npm run dev
+# El frontend estará disponible en http://localhost:5173
+```
+
+El sistema está listo. Acceda a `http://localhost:5173` en su navegador.
 
 ### 1. Diagrama de Bloques y Flujo de Datos
 
 ```mermaid
 graph TD
-    %% Componentes principales
-    subgraph Cliente [Cliente Navegador]
-        Three[Motor de Renderizado Three.js]
-        JS[Lógica de Interfaz JavaScript / Fetch]
-        Boot[Estilos Bootstrap 5]
+    %% Componentes principales del Cliente
+    subgraph Cliente [Cliente Navegador Web]
+        React["⚛️ React 19.2.6"]
+        Router["🛣️ React Router v7"]
+        Three["📦 Three.js & Drei (3D)"]
+        Bootstrap["🎨 Bootstrap 5"]
+        Axios["📡 Axios HTTP Client"]
     end
 
-    subgraph Servidor [Servidor Django Framework - Arquitectura Híbrida]
-        VHTML[Vistas de Renderizado HTML]
-        VAPI[Vistas de Datos API REST]
-        ORM[ORM de Django]
+    subgraph Backend [Servidor Django REST Framework]
+        DRF["🔌 Django REST API"]
+        Auth["🔐 Autenticación JWT"]
+        ORM["📊 ORM Django"]
+        Views["👁️ Vistas REST"]
     end
 
     subgraph Persistencia [Capa de Datos]
-        Postgres[(Base de datos PostgreSQL)]
+        Postgres[("🐘 PostgreSQL 14+")]
+        Static["📁 Assets Estáticos (.glb)"]
     end
 
-    %% Flujos de conexión
-    Cliente <-->|Intercambio Asíncrono HTTPS / JSON| Servidor
-    Servidor <-->|Lectura / Escritura| Persistencia
+    %% Flujos de Conexión
+    React --> Axios
+    Router --> React
+    Three --> React
+    Bootstrap --> React
+    
+    Axios -->|HTTP/JSON| DRF
+    DRF --> Auth
+    DRF --> Views
+    Views --> ORM
+    
+    ORM -->|SQL| Postgres
+    Static -->|GET| React
+    
+    Auth -.->|JWT Token Validation| ORM
+    
+    style React fill:#61dafb
+    style Postgres fill:#336791
+    style DRF fill:#092e20
+    style Three fill:#000000
 ```
+
+**Componentes de la Arquitectura:**
+
+1. **Frontend (React + Vite)**
+   - React 19.2.6 para interfaz de usuario
+   - Three.js para visualización 3D de instrumentos
+   - React Router para navegación entre módulos
+   - Bootstrap 5 para estilos consistentes
+   - Axios para comunicación asíncrona con el servidor
+
+2. **Backend (Django REST Framework)**
+   - Django 6.0 como framework principal
+   - Django REST Framework para APIs REST
+   - JWT Simple Token para autenticación stateless
+   - PostgreSQL como base de datos relacional
+
+3. **Persistencia**
+   - PostgreSQL para datos estructurados (usuarios, exámenes, evaluaciones)
+   - Sistema de archivos para modelos 3D (.glb)
+   - CORS Headers habilitado para comunicación frontend-backend
 
 ### 2. Flujo de Control para la Integración Continua (CI)
 
@@ -112,21 +190,31 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     actor Estudiante
-    participant Frontend as Interfaz (JS/Three.js)
-    participant Backend as Servidor (Django)
-    participant DB as Base de Datos (PostgreSQL)
+    participant Frontend as React/Vite (Frontend)
+    participant API as Django REST API
+    participant Auth as JWT Middleware
+    participant DB as PostgreSQL
 
-    Estudiante->>Frontend: 1. Accede al Dashboard (/usuarios/home/)
-    Frontend->>Backend: 2. Solicita carga de la página (GET)
-    Backend->>DB: 3. Valida sesión y consulta instrumento asignado
-    DB-->>Backend: 4-5. Retorna datos de persistencia
-    Backend-->>Frontend: 6. Retorna HTML base (Cargando...)
-    Frontend->>Backend: 7. Petición asíncrona para ruta .glb
-    Backend->>DB: 8. Obtiene ruta del archivo .glb
-    DB-->>Backend: Retorna URL
-    Backend-->>Frontend: 9-10. Responde JsonResponse con URL del modelo
-    Frontend->>Frontend: 11. InicializarThreeJS(ruta_modelo)
-    Frontend-->>Estudiante: 12. Visualiza e interactúa con instrumento 3D
+    Estudiante->>Frontend: 1. Navega a /estudiante/dashboard
+    Frontend->>API: 2. GET /api/usuarios/me/ (con JWT token)
+    API->>Auth: 3. Valida JWT Token
+    Auth-->>API: 4. Token válido ✓
+    API->>DB: 5. Consulta Usuario + Instrumento asignado
+    DB-->>API: 6. Retorna datos de estudiante
+    API-->>Frontend: 7. Response JSON con datos de usuario
+    
+    Frontend->>API: 8. GET /api/instrumentos/{id}/ para obtener modelo 3D
+    API->>DB: 9. Consulta instrumento y ruta del modelo
+    DB-->>API: 10. Retorna modelo_3d_url
+    API-->>Frontend: 11. Response JSON con URL (/assets/models/bombo.glb)
+    
+    Frontend->>Frontend: 12. Carga modelo .glb desde /assets/
+    Frontend->>Frontend: 13. Inicializa Three.js + Canvas
+    Frontend->>Frontend: 14. Renderiza instrumento 3D interactivo
+    
+    Frontend-->>Estudiante: 15. Dashboard con modelo 3D interactivo ✓
+    Estudiante->>Frontend: 16. Interactúa (rotación, zoom, etc.)
+    Frontend->>API: 17. POST /api/interacciones/ (opcional - registrar uso)
 ```
 ### 4. Diagrama de casos de uso: 
 ```mermaid
@@ -245,91 +333,370 @@ flowchart TD
 ### 7. Diagrama Entidad-Relación (Base de Datos)
 ```mermaid
 erDiagram
-    %% Relaciones
+    %% Relaciones de Usuarios, Grupos y Permisos
     Usuario ||--o{ Usuario_Grupo : "tiene"
     Grupo ||--o{ Usuario_Grupo : "pertenece"
     Grupo ||--o{ Grupo_Permiso : "posee"
     Permiso ||--o{ Grupo_Permiso : "asignado a"
     
+    %% Relación de Instrumentos
     Usuario ||--o{ Instrumento : "se le asigna"
+    Usuario ||--o{ VisorInteraccion : "interactúa con"
+    Instrumento ||--o{ VisorInteraccion : "es visualizado"
     
+    %% Relaciones de Evaluaciones
+    Usuario ||--o{ Examen : "profesor_crea"
+    Usuario ||--o{ IntentoExamen : "estudiante_realiza"
+    Examen ||--o{ IntentoExamen : "es_intentado"
     Examen ||--o{ Pregunta : "contiene"
     Pregunta ||--o{ Opcion : "tiene alternativas"
     
-    Usuario ||--o{ ResultadoExamen : "realiza"
-    Examen ||--o{ ResultadoExamen : "genera"
-    
-    ResultadoExamen ||--o{ RespuestaEstudiante : "incluye"
+    %% Respuestas del Estudiante
+    IntentoExamen ||--o{ RespuestaEstudiante : "incluye"
     Pregunta ||--o{ RespuestaEstudiante : "es respondida en"
     Opcion ||--o{ RespuestaEstudiante : "es seleccionada en"
+    
+    %% Notas y Calificaciones
+    Usuario ||--o{ Nota : "obtiene"
+    Examen ||--o{ Nota : "genera"
 
     %% Entidades (Atributos Principales)
     Usuario {
         INT id PK
         VARCHAR cedula "UNIQUE"
         VARCHAR nombre
-        VARCHAR email
-        VARCHAR password_hash
+        VARCHAR apellido
+        VARCHAR email "UNIQUE"
+        VARCHAR rol
+        VARCHAR carrera
+        INT semestre
+        VARCHAR rango_militar
+        VARCHAR instrumento_asignado
+        INT instructor_encargado_id "FK, Nullable"
         BOOLEAN activo
+        BOOLEAN is_staff
+        BOOLEAN is_active
+        TIMESTAMP fecha_registro
+        TIMESTAMP date_joined
     }
+    
     Grupo {
         INT id PK
         VARCHAR nombre "UNIQUE"
+        TEXT descripcion
         BOOLEAN activo
+        TIMESTAMP fecha_creacion
     }
+    
     Usuario_Grupo {
         INT id PK
         INT usuario_id FK
         INT grupo_id FK
+        TIMESTAMP fecha_asignacion
     }
+    
     Permiso {
         INT id PK
-        VARCHAR nombre
+        VARCHAR nombre "UNIQUE"
+        TEXT descripcion
         VARCHAR modulo
+        VARCHAR accion
+        BOOLEAN activo
+        TIMESTAMP fecha_creacion
     }
+    
     Grupo_Permiso {
         INT id PK
         INT grupo_id FK
         INT permiso_id FK
+        TIMESTAMP fecha_asignacion
     }
+    
     Instrumento {
         INT id PK
         VARCHAR nombre
-        VARCHAR modelo_3d_url
+        VARCHAR tipo
+        VARCHAR marca
+        VARCHAR modelo
+        VARCHAR numero_serie "UNIQUE"
         VARCHAR estado
         INT usuario_id FK "Nullable"
-    }
-    Examen {
-        INT id PK
-        VARCHAR titulo
+        INT ultimo_alumno_asignado_id FK "Nullable"
+        INT ultimo_responsable_id FK "Nullable"
+        TEXT motivo_tecnico
+        TEXT descripcion
+        VARCHAR modelo_3d_url
+        TIMESTAMP fecha_registro
+        TIMESTAMP fecha_actualizacion
         BOOLEAN activo
     }
+    
+    VisorInteraccion {
+        INT id PK
+        INT estudiante_id FK
+        INT instrumento_id FK
+        INT tiempo_visualizacion_segundos
+        JSON puntos_calientes_visitados
+        INT rotaciones_realizadas
+        INT zooms_realizados
+        TIMESTAMP fecha_interaccion
+    }
+    
+    Examen {
+        INT id PK
+        INT profesor_id FK
+        VARCHAR titulo
+        TEXT descripcion
+        TEXT instrucciones
+        TIMESTAMP fecha_apertura
+        TIMESTAMP fecha_cierre
+        INT duracion_minutos
+        INT intentos_permitidos
+        VARCHAR estado
+        TIMESTAMP fecha_creacion
+        TIMESTAMP fecha_actualizacion
+    }
+    
     Pregunta {
         INT id PK
         INT examen_id FK
-        VARCHAR texto
+        TEXT enunciado
         VARCHAR tipo
+        DECIMAL valor_puntos
+        INT orden
     }
+    
     Opcion {
         INT id PK
         INT pregunta_id FK
-        VARCHAR texto
+        TEXT texto
         BOOLEAN es_correcta
     }
-    ResultadoExamen {
+    
+    IntentoExamen {
         INT id PK
-        INT usuario_id FK
+        INT estudiante_id FK
         INT examen_id FK
-        DECIMAL puntaje
+        TIMESTAMP fecha_inicio
+        TIMESTAMP fecha_finalizacion
+        DECIMAL calificacion_final "Nullable"
         VARCHAR estado
     }
+    
     RespuestaEstudiante {
         INT id PK
-        INT resultado_examen_id FK
+        INT intento_id FK
         INT pregunta_id FK
-        INT opcion_id FK
-        BOOLEAN es_correcta
+        INT opcion_seleccionada_id FK "Nullable"
+    }
+    
+    Nota {
+        INT id PK
+        INT estudiante_id FK
+        INT examen_id FK
+        DECIMAL nota_obtenida
+        VARCHAR estado
+        TIMESTAMP fecha_completado
+        TEXT observaciones
     }
 ```
+
+---
+
+## 📁 Estructura del Proyecto
+
+```
+bandwar-sga/
+├── backend/                          # Django REST API
+│   ├── backend/                      # Configuración del proyecto Django
+│   │   ├── settings.py              # Configuración principal
+│   │   ├── urls.py                  # Enrutamiento principal
+│   │   ├── asgi.py                  # ASGI para producción
+│   │   └── wsgi.py                  # WSGI para producción
+│   ├── core/                        # App principal con toda la lógica
+│   │   ├── models.py                # Definición de todos los modelos
+│   │   ├── views.py                 # Vistas REST API
+│   │   ├── serializers.py           # Serializadores DRF
+│   │   ├── urls.py                  # Rutas de core
+│   │   ├── admin.py                 # Administración de Django
+│   │   ├── management/commands/     # Comandos personalizados
+│   │   │   ├── init_roles.py        # Inicializar roles y permisos
+│   │   │   ├── seed_users.py        # Crear usuarios de prueba
+│   │   │   ├── seed_test_scenario.py # Crear escenario de prueba
+│   │   │   └── assign_instructors_to_students.py
+│   │   └── migrations/              # Migraciones de BD
+│   ├── requirements.txt             # Dependencias Python
+│   ├── manage.py                    # Script de management de Django
+│   └── .env                         # Variables de entorno (NO commitar)
+├── frontend/                        # React + Vite
+│   ├── src/
+│   │   ├── App.jsx                  # Componente raíz
+│   │   ├── main.jsx                 # Punto de entrada
+│   │   ├── components/              # Componentes reutilizables
+│   │   │   ├── 3d/                  # Componentes de visualización 3D
+│   │   │   │   ├── Visor3D.jsx      # Visor 3D principal
+│   │   │   │   ├── InstrumentoModel.jsx
+│   │   │   │   └── VisorInstrumento.jsx
+│   │   │   ├── layout/              # Componentes de layout
+│   │   │   │   ├── Navbar.jsx
+│   │   │   │   └── Layout.jsx
+│   │   │   └── ErrorBoundary.jsx
+│   │   ├── views/                   # Vistas/Páginas
+│   │   │   ├── auth/                # Autenticación
+│   │   │   │   └── Login.jsx
+│   │   │   ├── estudiante/          # Módulo de estudiante
+│   │   │   │   ├── EstudianteDashboard.jsx
+│   │   │   │   ├── MisEvaluaciones.jsx
+│   │   │   │   ├── TomarExamen.jsx
+│   │   │   │   ├── OrdenCerrado.jsx
+│   │   │   │   └── MisNotas.jsx
+│   │   │   ├── profesor/            # Módulo de profesor
+│   │   │   │   ├── ProfesorDashboard.jsx
+│   │   │   │   ├── GestionInstrumentos.jsx
+│   │   │   │   ├── CrearEditarExamen.jsx
+│   │   │   │   └── GestionEvaluaciones.jsx
+│   │   │   └── shared/              # Vistas compartidas
+│   │   │       └── Perfil.jsx
+│   │   ├── context/                 # Context API
+│   │   │   └── AuthContext.jsx      # Contexto de autenticación
+│   │   ├── api/                     # Configuración de Axios
+│   │   │   └── axiosConfig.js
+│   │   ├── styles/                  # Estilos CSS
+│   │   └── utils/                   # Funciones utilitarias
+│   ├── public/                      # Archivos estáticos
+│   │   ├── assets/models/           # Modelos 3D (.glb)
+│   │   └── icons.svg
+│   ├── package.json
+│   ├── vite.config.js
+│   └── index.html
+├── CONTRIBUTING.md                  # Guía de contribución (GitFlow + Conventional Commits)
+├── README.md                        # Este archivo
+└── .gitignore                       # Reglas de exclusión de Git
+```
+
+---
+
+## 🛠️ Stack Tecnológico
+
+### Backend
+| Tecnología | Versión | Propósito |
+|------------|---------|----------|
+| **Django** | 6.0+ | Framework web principal |
+| **Django REST Framework** | Latest | API REST |
+| **Django JWT Token** | Latest | Autenticación stateless |
+| **PostgreSQL** | 14+ | Base de datos relacional |
+| **psycopg2** | Binary | Driver PostgreSQL para Python |
+| **CORS Headers** | Latest | Control de acceso entre dominios |
+| **Python** | 3.10+ | Lenguaje |
+
+### Frontend
+| Tecnología | Versión | Propósito |
+|------------|---------|----------|
+| **React** | 19.2.6 | Framework UI |
+| **React Router** | 7.15+ | Enrutamiento |
+| **Three.js** | 0.184+ | Renderizado 3D |
+| **@react-three/fiber** | 9.6+ | Bridge React-Three.js |
+| **@react-three/drei** | 10.7+ | Utilidades para Three.js |
+| **Axios** | 1.6+ | Cliente HTTP |
+| **Bootstrap** | 5.3+ | Framework CSS |
+| **Vite** | 8.0+ | Build tool y dev server |
+
+---
+
+## 🔒 Consideraciones de Seguridad
+
+### ⚠️ Antes de Desplegar a Producción
+
+1. **SECRET_KEY en Django**
+   - **Actual**: Hardcodeado en `settings.py` ❌
+   - **Debe ser**: Extraído a variable de entorno `.env` ✅
+   ```python
+   SECRET_KEY = os.getenv('DJANGO_SECRET_KEY')
+   ```
+
+2. **DEBUG en Producción**
+   ```python
+   DEBUG = os.getenv('DJANGO_DEBUG', 'False') == 'True'
+   ```
+
+3. **ALLOWED_HOSTS**
+   - Configurar solo dominios permitidos
+   ```python
+   ALLOWED_HOSTS = os.getenv('DJANGO_ALLOWED_HOSTS', 'localhost').split(',')
+   ```
+
+4. **CORS en Producción**
+   - Restringir solo a origenes autorizados
+   ```python
+   CORS_ALLOWED_ORIGINS = os.getenv('CORS_ALLOWED_ORIGINS', 'http://localhost:5173').split(',')
+   ```
+
+5. **HTTPS/SSL**
+   - Usar HTTPS en producción
+   - Configurar SECURE_SSL_REDIRECT = True
+
+6. **Base de Datos**
+   - Usar contraseñas fuertes
+   - Habilitar backup automático
+   - No exponer credenciales en el código
+
+---
+
+## 📝 Comandos Útiles
+
+### Backend
+```bash
+# Crear y aplicar migraciones
+python manage.py makemigrations
+python manage.py migrate
+
+# Crear superusuario
+python manage.py createsuperuser
+
+# Crear datos de prueba
+python manage.py seed_users
+python manage.py seed_test_scenario
+python manage.py init_roles
+
+# Acceso a Django Shell
+python manage.py shell
+
+# Ejecutar servidor de desarrollo
+python manage.py runserver
+
+# Collectar archivos estáticos (para producción)
+python manage.py collectstatic --noinput
+```
+
+### Frontend
+```bash
+# Desarrollo
+npm run dev
+
+# Build para producción
+npm run build
+
+# Preview del build
+npm run preview
+
+# Linting
+npm run lint
+```
+
+---
+
+## ✅ Validación del Sistema
+
+Después de la instalación, verifique que:
+
+1. ✅ El frontend se carga en `http://localhost:5173`
+2. ✅ La API responde en `http://localhost:8000/api/`
+3. ✅ Puede iniciar sesión con credenciales de prueba
+4. ✅ Los modelos 3D cargan correctamente
+5. ✅ Las evaluaciones se pueden crear y responder
+6. ✅ Las notas se registran en la base de datos
+
+---
+
 
 
