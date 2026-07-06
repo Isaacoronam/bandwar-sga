@@ -22,12 +22,16 @@ load_dotenv(os.path.join(BASE_DIR, '.env'))
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-aa#gez^e*6o814iua+rc0lvr#13l%kbd8onyr)6b2p)4et1(f@'
+# En desarrollo, usar valor por defecto. En producción DEBE estar en .env
+SECRET_KEY = os.getenv(
+    'DJANGO_SECRET_KEY',
+    'django-insecure-DESARROLLO-SOLO-CAMBIAR-EN-PRODUCCION-usar-archivo-env'
+)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv('DJANGO_DEBUG', 'True').lower() in ['true', '1', 'yes']
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = os.getenv('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
 
 
 # Application definition
@@ -129,12 +133,13 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 
-
-# Permitir conexiones desde el puerto por defecto de Vite (React)
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-]
+# Configuración de CORS (Compartir recursos entre dominios)
+# En desarrollo: permite localhost:5173 (Vite React)
+# En producción: debe estar en .env
+CORS_ALLOWED_ORIGINS = os.getenv(
+    'CORS_ALLOWED_ORIGINS',
+    'http://localhost:5173,http://127.0.0.1:5173'
+).split(',')
 
 # Configuración básica de Django REST Framework
 REST_FRAMEWORK = {
