@@ -14,6 +14,13 @@ Este es el repositorio central del prototipo **Bandwar SGA**, desarrollado como 
 
 De acuerdo con los lineamientos técnicos establecidos en la Fase #2, la arquitectura estructural y el flujo de datos del sistema se encuentran modelados directamente en código utilizando **Mermaid.js**.
 
+### Aclaración de arquitectura para los modelos 3D
+Para este prototipo, los modelos 3D (.glb) son recursos visuales estáticos y no forman parte de la lógica de evaluación ni del cálculo de calificaciones. Su función es únicamente mostrar de forma interactiva el instrumento asignado al estudiante dentro del visor 3D del sistema.
+
+- Los archivos .glb se almacenan físicamente en la carpeta `frontend/public/assets/models`.
+- El frontend los consume como archivos estáticos y los renderiza en el navegador mediante React + Three.js.
+- El backend sigue encargándose de usuarios, instrumentos, exámenes, respuestas y resultados en PostgreSQL.
+- Los modelos 3D no se usan para validar exámenes ni para determinar si una respuesta es correcta.
 
 ##  Instrucciones de Instalación y Despliegue Local
 
@@ -101,7 +108,6 @@ El sistema está listo. Acceda a `http://localhost:5173` en su navegador.
 
 ```mermaid
 graph TD
-    %% Componentes principales del Cliente
     subgraph Cliente [Cliente Navegador Web]
         React["⚛️ React 19.2.6"]
         Router["🛣️ React Router v7"]
@@ -122,22 +128,21 @@ graph TD
         Static["📁 Assets Estáticos (.glb)"]
     end
 
-    %% Flujos de Conexión
     React --> Axios
     Router --> React
     Three --> React
     Bootstrap --> React
-    
+
     Axios -->|HTTP/JSON| DRF
     DRF --> Auth
     DRF --> Views
     Views --> ORM
-    
+
     ORM -->|SQL| Postgres
     Static -->|GET| React
-    
+
     Auth -.->|JWT Token Validation| ORM
-    
+
     style React fill:#61dafb
     style Postgres fill:#336791
     style DRF fill:#092e20
@@ -161,9 +166,10 @@ graph TD
 
 3. **Persistencia**
    - PostgreSQL para datos estructurados (usuarios, exámenes, evaluaciones)
-   - Sistema de archivos para modelos 3D (.glb)
+   - Archivos estáticos 3D en `frontend/public/assets/models` para los modelos `.glb`
    - CORS Headers habilitado para comunicación frontend-backend
 
+> Nota: los archivos `.glb` son activos estáticos del frontend y no participan en la lógica de evaluación; solo se usan para la experiencia visual del visor 3D.
 ### 2. Flujo de Control para la Integración Continua (CI)
 
 ```mermaid
