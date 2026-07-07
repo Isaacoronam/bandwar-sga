@@ -88,6 +88,15 @@ npm install
 
 ### 8. Ejecución Local del Sistema Completo
 
+#### Verificación del MVP y documentación
+```bash
+cd backend
+python manage.py test core.tests.CoreBusinessLogicTestCase --verbosity 2
+
+cd ../frontend
+npm run doc
+```
+
 **Terminal 1 - Backend (Django Server)**:
 ```bash
 cd backend

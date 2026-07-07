@@ -1,5 +1,11 @@
 import axios from 'axios';
 
+/**
+ * Configuración centralizada del cliente HTTP para Bandwar.
+ * Proporciona autenticación JWT, renovación de sesión y manejo defensivo de errores.
+ * @module api/axiosConfig
+ */
+
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 const STORAGE_KEYS = {
@@ -11,13 +17,26 @@ const STORAGE_KEYS = {
 const getAccessToken = () => localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
 const getRefreshToken = () => localStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
 
+/**
+ * Registra un error con formato estructurado compatible con la trazabilidad del MVP.
+ * @param {string} message - Mensaje de error a registrar.
+ */
+const logStructuredError = (message) => {
+  try {
+    const timestamp = new Date().toISOString().slice(0, 10);
+    console.error(`[ERROR] [${timestamp}]: ${message}`);
+  } catch (error) {
+    console.error('[ERROR] [UNKNOWN]: No se pudo registrar el error estructurado.');
+  }
+};
+
 const clearSessionAndRedirect = () => {
   try {
     localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
     localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
     localStorage.removeItem(STORAGE_KEYS.USUARIO);
   } catch (err) {
-    console.warn('[WARN] No se pudo limpiar el almacenamiento local antes de redirigir:', err);
+    logStructuredError(`No se pudo limpiar el almacenamiento local antes de redirigir: ${err?.message || err}`);
   }
 
   window.location.href = '/login';
@@ -39,7 +58,10 @@ api.interceptors.request.use(
     }
     return config;
   },
-  (error) => Promise.reject(error),
+  (error) => {
+    logStructuredError(`Fallo en la solicitud HTTP: ${error?.message || error}`);
+    return Promise.reject(error);
+  },
 );
 
 api.interceptors.response.use(
@@ -72,6 +94,7 @@ api.interceptors.response.use(
             return api(originalRequest);
           }
         } catch (refreshError) {
+          logStructuredError(`No se pudo renovar el token JWT: ${refreshError?.message || refreshError}`);
           clearSessionAndRedirect();
           return Promise.reject(refreshError);
         }
@@ -80,6 +103,7 @@ api.interceptors.response.use(
       clearSessionAndRedirect();
     }
 
+    logStructuredError(`Respuesta HTTP con error ${error?.response?.status || 'desconocido'}: ${error?.message || error}`);
     return Promise.reject(error);
   },
 );

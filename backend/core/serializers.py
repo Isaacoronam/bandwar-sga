@@ -319,7 +319,8 @@ class AsignarInstrumentoSerializer(serializers.Serializer):
         instrumento.save()
 
         estudiante.instrumento_asignado = instrumento.nombre
-        estudiante.save(update_fields=['instrumento_asignado'])
+        estudiante.save()
+        estudiante.refresh_from_db(fields=['instrumento_asignado'])
 
         return {
             'estudiante': estudiante,
