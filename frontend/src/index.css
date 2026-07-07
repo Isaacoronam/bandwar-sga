@@ -1,0 +1,59 @@
+:root {
+    --primary-color: #1e59b1;  /* Azul profundo institucional */
+    --secondary-color: #c5a059; /* Dorado/Bronce para detalles */
+    --accent-color: #2c3e50;    /* Gris azulado oscuro */
+    --text-light: #ffffff;
+    --bg-light: #f4f4f4;
+}
+
+body {
+    background-color: var(--bg-light);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Clases utilitarias personalizadas para React */
+.bg-bandwar-primary {
+    background-color: var(--primary-color) !important;
+}
+
+.text-bandwar-gold {
+    color: var(--secondary-color) !important;
+}
+
+.border-bandwar-gold {
+    border-color: var(--secondary-color) !important;
+}
+
+.navbar-custom {
+    background-color: var(--primary-color) !important;
+    border-bottom: 3px solid var(--secondary-color);
+}
+
+.sidebar-custom {
+    background-color: var(--accent-color) !important;
+    color: var(--text-light);
+    border-right: 3px solid var(--secondary-color);
+}
+
+.btn-primary-custom {
+    background-color: var(--primary-color) !important;
+    border-color: var(--secondary-color) !important;
+    color: var(--secondary-color) !important;
+    font-weight: 600;
+}
+
+.btn-primary-custom:hover {
+    background-color: var(--secondary-color) !important;
+    color: var(--primary-color) !important;
+}
+
+.card-custom {
+    border: none;
+    border-top: 5px solid var(--secondary-color);
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    transition: transform 0.2s ease-in-out;
+}
+
+.card-custom:hover {
+    transform: translateY(-5px);
+}

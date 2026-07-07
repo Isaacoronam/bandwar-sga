@@ -1,0 +1,145 @@
+/**
+ * Estilos para el componente GestionInstrumentos
+ */
+
+.gestion-instrumentos {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding-top: 2rem;
+}
+
+.gestion-instrumentos .container-fluid {
+  background: #f8f9fa;
+  border-radius: 15px;
+  padding: 2rem;
+}
+
+.gestion-instrumentos h2 {
+  color: #2c3e50;
+  font-weight: 700;
+  font-size: 2.5rem;
+}
+
+.gestion-instrumentos .instrumento-card {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.gestion-instrumentos .instrumento-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15) !important;
+}
+
+.gestion-instrumentos .card-header {
+  border-bottom: none;
+  padding: 1.25rem;
+}
+
+.gestion-instrumentos .card-header h5 {
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.gestion-instrumentos .card-body {
+  padding: 1.25rem;
+}
+
+.gestion-instrumentos .card-footer {
+  padding: 1rem;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.gestion-instrumentos .btn-outline-primary:hover {
+  background-color: #667eea;
+  border-color: #667eea;
+}
+
+.gestion-instrumentos .btn-outline-success:hover {
+  background-color: #27ae60;
+  border-color: #27ae60;
+}
+
+.gestion-instrumentos .btn-outline-warning:hover {
+  background-color: #f39c12;
+  border-color: #f39c12;
+  color: white;
+}
+
+.gestion-instrumentos .btn-outline-danger:hover {
+  background-color: #e74c3c;
+  border-color: #e74c3c;
+}
+
+.gestion-instrumentos .modal {
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.gestion-instrumentos .modal-content {
+  border-radius: 12px;
+}
+
+.gestion-instrumentos .badge {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.85rem;
+  border-radius: 20px;
+}
+
+.gestion-instrumentos .form-control,
+.gestion-instrumentos .form-select {
+  border-radius: 8px;
+  border: 1px solid #dee2e6;
+  padding: 0.75rem;
+}
+
+.gestion-instrumentos .form-control:focus,
+.gestion-instrumentos .form-select:focus {
+  border-color: #667eea;
+  box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+}
+
+.gestion-instrumentos .btn-primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  border-radius: 8px;
+  padding: 0.75rem 1.5rem;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.gestion-instrumentos .btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+}
+
+.gestion-instrumentos .alert {
+  border-radius: 8px;
+  border: none;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .gestion-instrumentos h2 {
+    font-size: 1.75rem;
+  }
+
+  .gestion-instrumentos .btn-lg {
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+  }
+
+  .gestion-instrumentos .card-header h5 {
+    font-size: 1.1rem;
+  }
+}
