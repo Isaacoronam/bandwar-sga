@@ -17,6 +17,7 @@ from .models import (
     Instrumento, Usuario, VisorInteraccion, Examen, Pregunta, Opcion,
     IntentoExamen, RespuestaEstudiante, Grupo, Permiso, UsuarioGrupo, GrupoPermiso, Nota
 )
+from .utils import build_structured_log
 from .serializers import (
     AlumnoSerializer,
     AsignarInstrumentoSerializer,
@@ -102,16 +103,11 @@ class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
 
     def post(self, request, *args, **kwargs):
-        """
-        Procesa solicitud de login con manejo defensivo.
-        """
+        """Procesa solicitud de login con manejo defensivo y logging estructurado."""
         try:
             # Validar que el payload no esté vacío
             if not request.data:
-                logger.warning(
-                    f"[ERROR] [{datetime.now().isoformat()}]: "
-                    "Intento de login con payload vacío"
-                )
+                logger.warning(build_structured_log("ERROR", "Intento de login con payload vacío"))
                 return Response(
                     {"error": "Datos de login requeridos"},
                     status=status.HTTP_400_BAD_REQUEST,
@@ -122,10 +118,7 @@ class CustomTokenObtainPairView(TokenObtainPairView):
             password = request.data.get("password", "")
 
             if not cedula or not password:
-                logger.warning(
-                    f"[ERROR] [{datetime.now().isoformat()}]: "
-                    "Intento de login sin cédula o contraseña"
-                )
+                logger.warning(build_structured_log("ERROR", "Intento de login sin cédula o contraseña"))
                 return Response(
                     {
                         "error": "Cédula y contraseña son requeridos",
@@ -142,19 +135,13 @@ class CustomTokenObtainPairView(TokenObtainPairView):
 
             # Si la autenticación fue exitosa, loguear
             if response.status_code == 200:
-                logger.info(
-                    f"[INFO] [{datetime.now().isoformat()}]: "
-                    f"Login exitoso para usuario: {cedula}"
-                )
+                logger.info(build_structured_log("INFO", f"Login exitoso para usuario: {cedula}"))
 
             return response
 
         except serializers.ValidationError as e:
             # Errores de validación del serializer (credenciales incorrectas, etc)
-            logger.warning(
-                f"[ERROR] [{datetime.now().isoformat()}]: "
-                f"Error de validación en login: {str(e)}"
-            )
+            logger.warning(build_structured_log("ERROR", f"Error de validación en login: {str(e)}"))
             return Response(
                 {
                     "error": "Credenciales inválidas. Intente nuevamente.",
@@ -165,10 +152,7 @@ class CustomTokenObtainPairView(TokenObtainPairView):
 
         except Exception as e:
             # Capturar cualquier otro error inesperado
-            logger.error(
-                f"[ERROR] [{datetime.now().isoformat()}]: "
-                f"Excepción no manejada en login: {type(e).__name__}: {str(e)}"
-            )
+            logger.error(build_structured_log("ERROR", f"Excepción no manejada en login: {type(e).__name__}: {str(e)}"))
             return Response(
                 {
                     "error": "Error interno del servidor. Intente más tarde.",
@@ -199,9 +183,7 @@ class AlumnosListView(APIView):
             serializer = AlumnoSerializer(estudiantes, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
         except Exception as exc:
-            logger.error(
-                f"[ERROR] [{datetime.now().strftime('%Y-%m-%d')}]: Error al listar alumnos: {str(exc)}"
-            )
+            logger.error(build_structured_log("ERROR", f"Error al listar alumnos: {str(exc)}"))
             return Response(
                 {"error": "No se pudo listar los estudiantes"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -231,19 +213,14 @@ class AsignarInstrumentoView(APIView):
             serializer.is_valid(raise_exception=True)
             result = serializer.save()
 
-            logger.info(
-                f"[INFO] [{datetime.now().strftime('%Y-%m-%d')}]: "
-                f"Instrumento {result['instrumento'].id} asignado a estudiante {result['estudiante'].email}"
-            )
+            logger.info(build_structured_log("INFO", f"Instrumento {result['instrumento'].id} asignado a estudiante {result['estudiante'].email}"))
             return Response(
                 {"message": "Instrumento asignado correctamente"},
                 status=status.HTTP_200_OK,
             )
 
         except serializers.ValidationError as exc:
-            logger.error(
-                f"[ERROR] [{datetime.now().strftime('%Y-%m-%d')}]: Error de validación en asignación de instrumento: {exc.detail}"
-            )
+            logger.error(build_structured_log("ERROR", f"Error de validación en asignación de instrumento: {exc.detail}"))
             return Response(
                 {
                     "error": "Datos inválidos para asignar instrumento",
@@ -253,9 +230,7 @@ class AsignarInstrumentoView(APIView):
             )
 
         except Exception as exc:
-            logger.error(
-                f"[ERROR] [{datetime.now().strftime('%Y-%m-%d')}]: Error al asignar instrumento: {str(exc)}"
-            )
+            logger.error(build_structured_log("ERROR", f"Error al asignar instrumento: {str(exc)}"))
             return Response(
                 {"error": "Error interno al asignar instrumento"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
