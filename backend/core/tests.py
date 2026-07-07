@@ -22,6 +22,8 @@ from datetime import datetime
 import json
 
 from core.models import Usuario, Instrumento, VisorInteraccion
+from core.serializers import AsignarInstrumentoSerializer, RegistroAlumnoSerializer
+from core.utils import build_structured_log
 from django.contrib.auth import get_user_model
 User = get_user_model()
 
@@ -341,6 +343,137 @@ class VisorInteraccionTestCase(APITestCase):
         # Placeholder: requiere implementación de autenticación en tests
         pass
 
+class CoreBusinessLogicTestCase(TestCase):
+    def test_asignar_instrumento_serializer_asigna_instrumento_disponible(self):
+        estudiante = Usuario.objects.create_user(
+            cedula="V-10000001",
+            password="password123",
+            nombre="Ana",
+            apellido="García",
+            email="ana@example.com",
+            rol="ESTUDIANTE",
+        )
+        instrumento = Instrumento.objects.create(
+            nombre="Bombo",
+            tipo="Percusión",
+            marca="Yamaha",
+            modelo="YB-100",
+            numero_serie=None,
+            estado="Disponible",
+        )
+
+        serializer = AsignarInstrumentoSerializer(
+            data={"estudiante_id": estudiante.id, "instrumento_id": instrumento.id}
+        )
+
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+        result = serializer.save()
+
+        self.assertEqual(result["estudiante"].id, estudiante.id)
+        self.assertEqual(result["instrumento"].usuario_id, estudiante.id)
+        estudiante.refresh_from_db(fields=['instrumento_asignado'])
+        self.assertEqual(estudiante.instrumento_asignado, "Bombo")
+        self.assertEqual(result["instrumento"].estado, "Asignado")
+
+    def test_asignar_instrumento_serializer_rechaza_instrumento_asignado(self):
+        estudiante = Usuario.objects.create_user(
+            cedula="V-10000002",
+            password="password123",
+            nombre="Luis",
+            apellido="Pérez",
+            email="luis@example.com",
+            rol="ESTUDIANTE",
+        )
+        otro_estudiante = Usuario.objects.create_user(
+            cedula="V-10000003",
+            password="password123",
+            nombre="Marta",
+            apellido="López",
+            email="marta@example.com",
+            rol="ESTUDIANTE",
+        )
+        instrumento = Instrumento.objects.create(
+            nombre="Trompeta",
+            tipo="Viento",
+            marca="Yamaha",
+            modelo="TR-200",
+            numero_serie="TR-001",
+            estado="Disponible",
+            usuario=otro_estudiante,
+        )
+
+        serializer = AsignarInstrumentoSerializer(
+            data={"estudiante_id": estudiante.id, "instrumento_id": instrumento.id}
+        )
+
+        self.assertFalse(serializer.is_valid())
+        self.assertIn("instrumento_id", serializer.errors)
+
+    def test_asignar_instrumento_serializer_rechaza_instrumento_no_disponible(self):
+        estudiante = Usuario.objects.create_user(
+            cedula="V-10000004",
+            password="password123",
+            nombre="Sofía",
+            apellido="Ruiz",
+            email="sofia@example.com",
+            rol="ESTUDIANTE",
+        )
+        instrumento = Instrumento.objects.create(
+            nombre="Redoblante",
+            tipo="Percusión",
+            marca="Meinl",
+            modelo="RD-100",
+            numero_serie="RD-001",
+            estado="En reparación",
+        )
+
+        serializer = AsignarInstrumentoSerializer(
+            data={"estudiante_id": estudiante.id, "instrumento_id": instrumento.id}
+        )
+
+        self.assertFalse(serializer.is_valid())
+        self.assertIn("instrumento_id", serializer.errors)
+
+    def test_instrumento_save_autogenera_numero_serie_y_modelo_3d(self):
+        instrumento = Instrumento.objects.create(
+            nombre="Tambor Mayor",
+            tipo="Percusión",
+            marca="Pearl",
+            modelo="TM-300",
+            numero_serie="",
+            estado="Disponible",
+        )
+
+        self.assertTrue(instrumento.numero_serie.startswith("TM-"))
+        self.assertEqual(instrumento.resolve_modelo_3d_url(), "/assets/models/tambor-mayor.glb")
+
+    def test_registro_alumno_serializer_crea_usuario_con_password_default(self):
+        serializer = RegistroAlumnoSerializer(
+            data={
+                "cedula": "V-10000005",
+                "nombre": "Carlos",
+                "apellido": "Mendoza",
+                "email": "carlos@example.com",
+                "carrera": "Educación Musical",
+                "semestre": 3,
+                "rango_militar": "Soldado",
+            }
+        )
+
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+        usuario = serializer.save()
+
+        self.assertTrue(usuario.check_password(RegistroAlumnoSerializer.DEFAULT_PASSWORD))
+        self.assertEqual(usuario.rol, "ESTUDIANTE")
+        self.assertTrue(usuario.activo)
+
+
+class LoggingUtilitiesTestCase(TestCase):
+    def test_build_structured_log_uses_required_format(self):
+        log_line = build_structured_log("ERROR", "Error de asignación de instrumento")
+
+        self.assertIn("[ERROR]", log_line)
+        self.assertRegex(log_line, r"\[ERROR\] \[\d{4}-\d{2}-\d{2}\]: Error de asignación de instrumento")
 
 # ============================================================================
 # SUITE DE PRUEBAS - READY FOR EXECUTION
