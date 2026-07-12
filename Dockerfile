@@ -30,7 +30,10 @@ RUN python -m pip install --upgrade pip setuptools wheel \
 # 7. Copy the Django project source code
 COPY backend/ /app/
 
-# 8. Use the non-root django user for runtime
+# 8. Ensure the app directory and staticfiles folder are writable by the django user
+RUN mkdir -p /app/staticfiles && chown -R django:django /app && chmod -R 777 /app/staticfiles
+
+# 9. Use the non-root django user for runtime
 USER django
 
 # 9. Expose the port expected by Back4App
