@@ -11,10 +11,12 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
 import os
+import logging
 from pathlib import Path
 from django.core.exceptions import ImproperlyConfigured
 from dotenv import load_dotenv
 from corsheaders.defaults import default_headers, default_methods
+import dj_database_url
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -40,12 +42,12 @@ SECRET_KEY = get_env_variable(
     required=IS_PRODUCTION,
 )
 
-DEBUG = os.getenv('DEBUG', 'False').lower() in ['true', '1', 'yes']
+DEBUG = os.getenv('DJANGO_DEBUG', os.getenv('DEBUG', 'False')).lower() in ['true', '1', 'yes']
 
 # Si no se configura ALLOWED_HOSTS en el entorno, permitimos todos los hosts
-# para evitar rechazos por host inválido en deploys como Back4App.
+# para evitar rechazos por host inválido en deployments como Back4App.
 ALLOWED_HOSTS = [
-    host.strip() for host in os.getenv('ALLOWED_HOSTS', '*').split(',')
+    host.strip() for host in os.getenv('DJANGO_ALLOWED_HOSTS', os.getenv('ALLOWED_HOSTS', '*')).split(',')
     if host.strip()
 ]
 
@@ -102,25 +104,86 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
-if os.getenv('DB_ENGINE') == 'sqlite3' or os.getenv('CI', '').lower() in {'1', 'true', 'yes'}:
-    DATABASES = {
+def build_sqlite_config():
+    return {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
             'NAME': BASE_DIR / 'db.sqlite3',
         }
     }
-    MIGRATION_MODULES = {'core': None}
+
+
+def test_postgres_connection(config: dict) -> bool:
+    if config.get('ENGINE') != 'django.db.backends.postgresql':
+        return True
+
+    if not config.get('NAME') or not config.get('USER') or not config.get('PASSWORD') or not config.get('HOST'):
+        logging.warning('No hay credenciales completas de Postgres; usando SQLite temporalmente.')
+        return False
+
+    try:
+        import psycopg2
+        conn = psycopg2.connect(
+            dbname=config.get('NAME'),
+            user=config.get('USER'),
+            password=config.get('PASSWORD'),
+            host=config.get('HOST'),
+            port=config.get('PORT'),
+            sslmode=config.get('OPTIONS', {}).get('sslmode', 'require' if IS_PRODUCTION else 'prefer'),
+            connect_timeout=5,
+        )
+        conn.close()
+        return True
+    except Exception as exc:
+        logging.warning('No se pudo conectar a Postgres; usando SQLite temporalmente: %s', exc)
+        return False
+
+
+database_url = os.getenv('DATABASE_URL') or os.getenv('DB_URL')
+db_engine = os.getenv('DB_ENGINE', '').lower()
+
+if database_url:
+    try:
+        parsed_db = dj_database_url.parse(
+            database_url,
+            conn_max_age=600,
+            ssl_require=IS_PRODUCTION,
+        )
+    except Exception as exc:
+        logging.warning('No se pudo parsear DATABASE_URL/DB_URL; usando SQLite temporalmente: %s', exc)
+        parsed_db = None
+
+    if parsed_db is None:
+        DATABASES = build_sqlite_config()
+    else:
+        if IS_PRODUCTION:
+            parsed_db.setdefault('OPTIONS', {})
+            parsed_db['OPTIONS'].setdefault('sslmode', 'require')
+
+        if parsed_db.get('ENGINE') == 'django.db.backends.postgresql' and not test_postgres_connection(parsed_db):
+            DATABASES = build_sqlite_config()
+        else:
+            DATABASES = {'default': parsed_db}
+elif db_engine == 'sqlite3' or os.getenv('CI', '').lower() in {'1', 'true', 'yes'}:
+    DATABASES = build_sqlite_config()
 else:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': get_env_variable('DB_NAME', required=True),
-            'USER': get_env_variable('DB_USER', required=True),
-            'PASSWORD': get_env_variable('DB_PASSWORD', required=True),
-            'HOST': get_env_variable('DB_HOST', required=True),
-            'PORT': get_env_variable('DB_PORT', '5432'),
-        }
+    db_sslmode = os.getenv('DB_SSLMODE', 'require' if IS_PRODUCTION else 'prefer')
+    postgres_config = {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.getenv('DB_NAME', ''),
+        'USER': os.getenv('DB_USER', ''),
+        'PASSWORD': os.getenv('DB_PASSWORD', ''),
+        'HOST': os.getenv('DB_HOST', ''),
+        'PORT': os.getenv('DB_PORT', '5432'),
+        'OPTIONS': {
+            'sslmode': db_sslmode,
+        },
     }
+
+    if test_postgres_connection(postgres_config):
+        DATABASES = {'default': postgres_config}
+    else:
+        DATABASES = build_sqlite_config()
 
 
 # Password validation
@@ -169,6 +232,9 @@ STORAGES = {
         "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
     },
 }
+
+# Django 5/6 requiere DEFAULT_AUTO_FIELD si no se define en apps.
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # Configuración de CORS (Compartir recursos entre dominios)
 # En desarrollo: permite localhost:5173 (Vite React)
 # En producción: debe estar en .env
