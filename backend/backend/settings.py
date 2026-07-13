@@ -178,19 +178,13 @@ if cors_origins_env:
     ]
     CORS_ALLOW_ALL_ORIGINS = False
 else:
-    if IS_PRODUCTION:
-        # En producción, si no se ha configurado explícitamente CORS_ALLOWED_ORIGINS,
-        # permitimos temporalmente todas las orígenes para que el frontend desplegado
-        # en Vercel pueda comunicarse con el backend. Ajusta esta variable en tu
-        # entorno de Back4App para mayor seguridad.
-        CORS_ALLOWED_ORIGINS = []
-        CORS_ALLOW_ALL_ORIGINS = True
-    else:
-        CORS_ALLOWED_ORIGINS = [
-            'http://localhost:5173',
-            'http://127.0.0.1:5173',
-        ]
-        CORS_ALLOW_ALL_ORIGINS = False
+    # Si no se define CORS_ALLOWED_ORIGINS, permitimos todas las orígenes
+    # para evitar bloqueos de CORS en deployment y facilitar la comunicación
+    # entre el frontend desplegado en Vercel y el backend en Back4App.
+    CORS_ALLOWED_ORIGINS = []
+    CORS_ALLOW_ALL_ORIGINS = True
+
+CORS_ALLOW_CREDENTIALS = True
 # Configuración básica de Django REST Framework
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
