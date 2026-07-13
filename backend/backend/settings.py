@@ -42,9 +42,10 @@ SECRET_KEY = get_env_variable(
 
 DEBUG = os.getenv('DEBUG', 'False').lower() in ['true', '1', 'yes']
 
-DEFAULT_ALLOWED_HOSTS = 'localhost,127.0.0.1' if not IS_PRODUCTION else '*'
+# Si no se configura ALLOWED_HOSTS en el entorno, permitimos todos los hosts
+# para evitar rechazos por host inválido en deploys como Back4App.
 ALLOWED_HOSTS = [
-    host.strip() for host in os.getenv('ALLOWED_HOSTS', DEFAULT_ALLOWED_HOSTS).split(',')
+    host.strip() for host in os.getenv('ALLOWED_HOSTS', '*').split(',')
     if host.strip()
 ]
 
