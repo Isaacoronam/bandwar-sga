@@ -11,27 +11,77 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
 import os
+import logging
 from pathlib import Path
+from django.core.exceptions import ImproperlyConfigured
 from dotenv import load_dotenv
+from corsheaders.defaults import default_headers, default_methods
+import dj_database_url
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-load_dotenv(os.path.join(BASE_DIR, '.env'))
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
+DJANGO_ENV = os.getenv('DJANGO_ENV', 'development').lower()
+IS_PRODUCTION = DJANGO_ENV == 'production'
 
-# SECURITY WARNING: keep the secret key used in production secret!
-# En desarrollo, usar valor por defecto. En producción DEBE estar en .env
-SECRET_KEY = os.getenv(
-    'DJANGO_SECRET_KEY',
-    'django-insecure-DESARROLLO-SOLO-CAMBIAR-EN-PRODUCCION-usar-archivo-env'
+# Load local env vars only when not running in production.
+if not IS_PRODUCTION:
+    load_dotenv(BASE_DIR / '.env')
+
+# Helper to require production environment variables.
+def get_env_variable(name: str, default=None, required: bool = False):
+    value = os.getenv(name, default)
+    if required and not value:
+        raise ImproperlyConfigured(f"La variable de entorno '{name}' es obligatoria en producción.")
+    return value
+
+
+def parse_env_list(value: str | None):
+    if not value:
+        return []
+    return [item.strip() for item in value.split(',') if item.strip()]
+
+DEFAULT_SECRET_KEY = 'django-insecure-development-key-please-change'
+SECRET_KEY = get_env_variable(
+    'SECRET_KEY',
+    get_env_variable('DJANGO_SECRET_KEY', DEFAULT_SECRET_KEY),
+    required=IS_PRODUCTION,
 )
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv('DJANGO_DEBUG', 'True').lower() in ['true', '1', 'yes']
+DEBUG = os.getenv('DJANGO_DEBUG', os.getenv('DEBUG', 'False')).lower() in ['true', '1', 'yes']
 
-ALLOWED_HOSTS = os.getenv('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+# Permitir explícitamente los dominios usados por Vercel y Back4App para evitar
+# rechazos de host y CSRF en despliegues detrás de proxy.
+# Emergency mode for Railway deployment: accept all hosts for today only.
+# WARNING: This is intentionally permissive to prioritize connectivity for
+# the production delivery. Tighten this tomorrow.
+ALLOWED_HOSTS = ['*']
+
+# Trust proxy headers so Django sees the correct host/origin behind Back4App/CDN.
+USE_X_FORWARDED_HOST = True
+USE_X_FORWARDED_PORT = True
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+# Allow the Vercel frontend and the Back4App backend domain to be treated as trusted origins for CSRF.
+configured_csrf_origins = parse_env_list(os.getenv('CSRF_TRUSTED_ORIGINS', ''))
+default_csrf_origins = [
+    'https://bandwar-qzwu6u4su-bandwar-team.vercel.app',
+    'https://bandwar-e75s4ztaz-bandwar-team.vercel.app',
+    'https://bandwarbackend2-n9gg3px6.b4a.run',
+    'https://bandwarbackend2-h9g58o78.b4a.run',
+    'https://bandwarbackend1-horglklb.b4a.run',
+    'https://bandwarbackend2-6otb95dv.b4a.run',
+]
+
+# Also accept the common localhost/dev origins while working locally.
+local_csrf_origins = [
+    'http://localhost:5173',
+    'http://127.0.0.1:5173',
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+]
+
+CSRF_TRUSTED_ORIGINS = list(dict.fromkeys(configured_csrf_origins + default_csrf_origins + local_csrf_origins))
 
 
 # Application definition
@@ -54,6 +104,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -85,25 +136,57 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
-if os.getenv('DB_ENGINE') == 'sqlite3' or os.getenv('CI', '').lower() in {'1', 'true', 'yes'}:
-    DATABASES = {
+def build_sqlite_config():
+    return {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
             'NAME': BASE_DIR / 'db.sqlite3',
         }
     }
-    MIGRATION_MODULES = {'core': None}
-else:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': os.getenv('DB_NAME', 'prototipo'),
-            'USER': os.getenv('DB_USER'),
-            'PASSWORD': os.getenv('DB_PASSWORD'),
-            'HOST': os.getenv('DB_HOST', 'localhost'),
-            'PORT': os.getenv('DB_PORT', '5432'),
+
+
+def test_postgres_connection(config: dict) -> bool:
+    if config.get('ENGINE') != 'django.db.backends.postgresql':
+        return True
+
+    if not config.get('NAME') or not config.get('USER') or not config.get('PASSWORD') or not config.get('HOST'):
+        logging.warning('No hay credenciales completas de Postgres; usando SQLite temporalmente.')
+        return False
+
+    try:
+        import psycopg2
+        conn = psycopg2.connect(
+            dbname=config.get('NAME'),
+            user=config.get('USER'),
+            password=config.get('PASSWORD'),
+            host=config.get('HOST'),
+            port=config.get('PORT'),
+            sslmode=config.get('OPTIONS', {}).get('sslmode', 'require' if IS_PRODUCTION else 'prefer'),
+            connect_timeout=5,
+        )
+        conn.close()
+        return True
+    except Exception as exc:
+        logging.warning('No se pudo conectar a Postgres; usando SQLite temporalmente: %s', exc)
+        return False
+
+
+# Configure DATABASES from Railway-provided DATABASE_URL when available.
+database_url = os.getenv('DATABASE_URL') or os.getenv('DB_URL')
+if database_url:
+    try:
+        DATABASES = {
+            'default': dj_database_url.parse(
+                database_url,
+                conn_max_age=600,
+                ssl_require=IS_PRODUCTION,
+            )
         }
-    }
+    except Exception as exc:
+        logging.warning('Error parsing DATABASE_URL; falling back to SQLite: %s', exc)
+        DATABASES = build_sqlite_config()
+else:
+    DATABASES = build_sqlite_config()
 
 
 # Password validation
@@ -141,15 +224,40 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 
+# Formato obligatorio para Django 5.0+ y 6.0+
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
+
+# Django 5/6 requiere DEFAULT_AUTO_FIELD si no se define en apps.
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # Configuración de CORS (Compartir recursos entre dominios)
 # En desarrollo: permite localhost:5173 (Vite React)
 # En producción: debe estar en .env
-CORS_ALLOWED_ORIGINS = os.getenv(
-    'CORS_ALLOWED_ORIGINS',
-    'http://localhost:5173,http://127.0.0.1:5173'
-).split(',')
+CORS_ALLOWED_ORIGINS = []
+# Emergency mode: allow all origins to prioritize connectivity for delivery today.
+CORS_ALLOW_ALL_ORIGINS = True
+CORS_ORIGIN_ALLOW_ALL = True
+CORS_ORIGIN_WHITELIST = []
 
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_HEADERS = list(default_headers) + [
+    'content-type',
+    'authorization',
+    'x-requested-with',
+]
+CORS_ALLOW_METHODS = list(default_methods)
+CORS_EXPOSE_HEADERS = [
+    'Content-Type',
+    'Authorization',
+]
 # Configuración básica de Django REST Framework
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (

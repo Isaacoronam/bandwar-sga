@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('core', '0007_fix_django_admin_log_constraint'),
+        ('core', '0006_usuario_groups_usuario_user_permissions_and_more'),
     ]
 
     operations = [
