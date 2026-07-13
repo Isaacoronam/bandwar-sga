@@ -44,12 +44,24 @@ SECRET_KEY = get_env_variable(
 
 DEBUG = os.getenv('DJANGO_DEBUG', os.getenv('DEBUG', 'False')).lower() in ['true', '1', 'yes']
 
-# Si no se configura ALLOWED_HOSTS en el entorno, permitimos todos los hosts
-# para evitar rechazos por host inválido en deployments como Back4App.
-ALLOWED_HOSTS = [
-    host.strip() for host in os.getenv('DJANGO_ALLOWED_HOSTS', os.getenv('ALLOWED_HOSTS', '*')).split(',')
-    if host.strip()
+# Permitir explícitamente los dominios usados por Vercel y Back4App para evitar
+# rechazos de host y CSRF en despliegues detrás de proxy.
+default_allowed_hosts = [
+    'localhost',
+    '127.0.0.1',
+    '0.0.0.0',
+    'bandwar-qzwu6u4su-bandwar-team.vercel.app',
+    'bandwarbackend2-n9gg3px6.b4a.run',
+    'bandwarbackend2-h9g58o78.b4a.run',
+    'bandwarbackend1-horglklb.b4a.run',
 ]
+
+env_hosts = os.getenv('DJANGO_ALLOWED_HOSTS', os.getenv('ALLOWED_HOSTS', ''))
+configured_hosts = [host.strip() for host in env_hosts.split(',') if host.strip()] if env_hosts else []
+if '*' in configured_hosts:
+    ALLOWED_HOSTS = ['*']
+else:
+    ALLOWED_HOSTS = list(dict.fromkeys(configured_hosts + default_allowed_hosts))
 
 # Trust proxy headers so Django sees the correct host/origin behind Back4App/CDN.
 USE_X_FORWARDED_HOST = True
@@ -59,6 +71,7 @@ SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 # Allow the Vercel frontend and the Back4App backend domain to be treated as trusted origins for CSRF.
 CSRF_TRUSTED_ORIGINS = [
     'https://bandwar-qzwu6u4su-bandwar-team.vercel.app',
+    'https://bandwarbackend2-n9gg3px6.b4a.run',
     'https://bandwarbackend2-h9g58o78.b4a.run',
     'https://bandwarbackend1-horglklb.b4a.run',
 ]
