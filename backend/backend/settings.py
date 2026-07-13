@@ -18,8 +18,11 @@ from dotenv import load_dotenv
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+DJANGO_ENV = os.getenv('DJANGO_ENV', 'development').lower()
+IS_PRODUCTION = DJANGO_ENV == 'production'
+
 # Load local env vars only when not running in production.
-if os.getenv('DJANGO_ENV', 'development').lower() != 'production':
+if not IS_PRODUCTION:
     load_dotenv(BASE_DIR / '.env')
 
 # Helper to require production environment variables.
@@ -29,7 +32,12 @@ def get_env_variable(name: str, default=None, required: bool = False):
         raise ImproperlyConfigured(f"La variable de entorno '{name}' es obligatoria en producción.")
     return value
 
-SECRET_KEY = get_env_variable('SECRET_KEY', get_env_variable('DJANGO_SECRET_KEY'), required=True)
+DEFAULT_SECRET_KEY = 'django-insecure-development-key-please-change'
+SECRET_KEY = get_env_variable(
+    'SECRET_KEY',
+    get_env_variable('DJANGO_SECRET_KEY', DEFAULT_SECRET_KEY),
+    required=IS_PRODUCTION,
+)
 
 DEBUG = os.getenv('DEBUG', 'False').lower() in ['true', '1', 'yes']
 
