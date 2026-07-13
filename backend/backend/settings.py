@@ -41,8 +41,9 @@ SECRET_KEY = get_env_variable(
 
 DEBUG = os.getenv('DEBUG', 'False').lower() in ['true', '1', 'yes']
 
+DEFAULT_ALLOWED_HOSTS = 'localhost,127.0.0.1' if not IS_PRODUCTION else '*'
 ALLOWED_HOSTS = [
-    host.strip() for host in os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+    host.strip() for host in os.getenv('ALLOWED_HOSTS', DEFAULT_ALLOWED_HOSTS).split(',')
     if host.strip()
 ]
 
@@ -169,13 +170,27 @@ STORAGES = {
 # Configuración de CORS (Compartir recursos entre dominios)
 # En desarrollo: permite localhost:5173 (Vite React)
 # En producción: debe estar en .env
-CORS_ALLOWED_ORIGINS = [
-    origin.strip() for origin in os.getenv(
-        'CORS_ALLOWED_ORIGINS', 
-        'http://localhost:5173,http://127.0.0.1:5173'
-    ).split(',')
-    if origin.strip()
-]
+cors_origins_env = os.getenv('CORS_ALLOWED_ORIGINS')
+if cors_origins_env:
+    CORS_ALLOWED_ORIGINS = [
+        origin.strip() for origin in cors_origins_env.split(',')
+        if origin.strip()
+    ]
+    CORS_ALLOW_ALL_ORIGINS = False
+else:
+    if IS_PRODUCTION:
+        # En producción, si no se ha configurado explícitamente CORS_ALLOWED_ORIGINS,
+        # permitimos temporalmente todas las orígenes para que el frontend desplegado
+        # en Vercel pueda comunicarse con el backend. Ajusta esta variable en tu
+        # entorno de Back4App para mayor seguridad.
+        CORS_ALLOWED_ORIGINS = []
+        CORS_ALLOW_ALL_ORIGINS = True
+    else:
+        CORS_ALLOWED_ORIGINS = [
+            'http://localhost:5173',
+            'http://127.0.0.1:5173',
+        ]
+        CORS_ALLOW_ALL_ORIGINS = False
 # Configuración básica de Django REST Framework
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (

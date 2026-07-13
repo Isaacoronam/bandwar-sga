@@ -6,7 +6,7 @@ import axios from 'axios';
  * @module api/axiosConfig
  */
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://bandwarbackend1-horglklb.b4a.run' : 'http://localhost:8000');
 
 const STORAGE_KEYS = {
   ACCESS_TOKEN: 'access_token',
