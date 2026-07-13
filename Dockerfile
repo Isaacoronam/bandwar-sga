@@ -39,5 +39,5 @@ USER django
 # 9. Expose the port expected by Back4App
 EXPOSE 8000
 
-# 10. Run static collection, database migrations and start Gunicorn
-CMD ["sh", "-c", "python manage.py collectstatic --noinput && python manage.py migrate --noinput && gunicorn backend.wsgi:application --bind 0.0.0.0:8000 --workers 3 --log-level info"]
+# 10. Run static collection, database migrations, create admin user if needed and start Gunicorn
+CMD ["sh", "-c", "python manage.py collectstatic --noinput && python manage.py migrate --noinput && python manage.py create_default_superuser && gunicorn backend.wsgi:application --bind 0.0.0.0:8000 --workers 3 --log-level info"]

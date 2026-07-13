@@ -51,6 +51,26 @@ ALLOWED_HOSTS = [
     if host.strip()
 ]
 
+# Trust proxy headers so Django sees the correct host/origin behind Back4App/CDN.
+USE_X_FORWARDED_HOST = True
+USE_X_FORWARDED_PORT = True
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+# Allow the Vercel frontend and the Back4App backend domain to be treated as trusted origins for CSRF.
+CSRF_TRUSTED_ORIGINS = [
+    'https://bandwar-qzwu6u4su-bandwar-team.vercel.app',
+    'https://bandwarbackend2-h9g58o78.b4a.run',
+    'https://bandwarbackend1-horglklb.b4a.run',
+]
+
+# Also accept the common localhost/dev origins while working locally.
+CSRF_TRUSTED_ORIGINS += [
+    'http://localhost:5173',
+    'http://127.0.0.1:5173',
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+]
+
 
 # Application definition
 
