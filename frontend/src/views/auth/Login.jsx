@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import logoUnefa from '../../assets/img/logo_unefa.png';
-import './login.css';
+import './Login.css';
 
 /**
  * Login - Componente de autenticación
