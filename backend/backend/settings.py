@@ -178,12 +178,16 @@ if cors_origins_env:
         if origin.strip()
     ]
     CORS_ALLOW_ALL_ORIGINS = False
+    CORS_ORIGIN_ALLOW_ALL = False
+    CORS_ORIGIN_WHITELIST = CORS_ALLOWED_ORIGINS
 else:
     # Si no se define CORS_ALLOWED_ORIGINS, permitimos todas las orígenes
     # para evitar bloqueos de CORS en deployment y facilitar la comunicación
     # entre el frontend desplegado en Vercel y el backend en Back4App.
     CORS_ALLOWED_ORIGINS = []
     CORS_ALLOW_ALL_ORIGINS = True
+    CORS_ORIGIN_ALLOW_ALL = True
+    CORS_ORIGIN_WHITELIST = []
 
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_HEADERS = list(default_headers) + [
