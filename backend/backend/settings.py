@@ -35,6 +35,12 @@ def get_env_variable(name: str, default=None, required: bool = False):
         raise ImproperlyConfigured(f"La variable de entorno '{name}' es obligatoria en producción.")
     return value
 
+
+def parse_env_list(value: str | None):
+    if not value:
+        return []
+    return [item.strip() for item in value.split(',') if item.strip()]
+
 DEFAULT_SECRET_KEY = 'django-insecure-development-key-please-change'
 SECRET_KEY = get_env_variable(
     'SECRET_KEY',
@@ -46,22 +52,10 @@ DEBUG = os.getenv('DJANGO_DEBUG', os.getenv('DEBUG', 'False')).lower() in ['true
 
 # Permitir explícitamente los dominios usados por Vercel y Back4App para evitar
 # rechazos de host y CSRF en despliegues detrás de proxy.
-default_allowed_hosts = [
-    'localhost',
-    '127.0.0.1',
-    '0.0.0.0',
-    'bandwar-qzwu6u4su-bandwar-team.vercel.app',
-    'bandwarbackend2-n9gg3px6.b4a.run',
-    'bandwarbackend2-h9g58o78.b4a.run',
-    'bandwarbackend1-horglklb.b4a.run',
-]
-
-env_hosts = os.getenv('DJANGO_ALLOWED_HOSTS', os.getenv('ALLOWED_HOSTS', ''))
-configured_hosts = [host.strip() for host in env_hosts.split(',') if host.strip()] if env_hosts else []
-if '*' in configured_hosts:
-    ALLOWED_HOSTS = ['*']
-else:
-    ALLOWED_HOSTS = list(dict.fromkeys(configured_hosts + default_allowed_hosts))
+# Emergency mode for Railway deployment: accept all hosts for today only.
+# WARNING: This is intentionally permissive to prioritize connectivity for
+# the production delivery. Tighten this tomorrow.
+ALLOWED_HOSTS = ['*']
 
 # Trust proxy headers so Django sees the correct host/origin behind Back4App/CDN.
 USE_X_FORWARDED_HOST = True
@@ -69,20 +63,25 @@ USE_X_FORWARDED_PORT = True
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 # Allow the Vercel frontend and the Back4App backend domain to be treated as trusted origins for CSRF.
-CSRF_TRUSTED_ORIGINS = [
+configured_csrf_origins = parse_env_list(os.getenv('CSRF_TRUSTED_ORIGINS', ''))
+default_csrf_origins = [
     'https://bandwar-qzwu6u4su-bandwar-team.vercel.app',
+    'https://bandwar-e75s4ztaz-bandwar-team.vercel.app',
     'https://bandwarbackend2-n9gg3px6.b4a.run',
     'https://bandwarbackend2-h9g58o78.b4a.run',
     'https://bandwarbackend1-horglklb.b4a.run',
+    'https://bandwarbackend2-6otb95dv.b4a.run',
 ]
 
 # Also accept the common localhost/dev origins while working locally.
-CSRF_TRUSTED_ORIGINS += [
+local_csrf_origins = [
     'http://localhost:5173',
     'http://127.0.0.1:5173',
     'http://localhost:3000',
     'http://127.0.0.1:3000',
 ]
+
+CSRF_TRUSTED_ORIGINS = list(dict.fromkeys(configured_csrf_origins + default_csrf_origins + local_csrf_origins))
 
 
 # Application definition
@@ -172,51 +171,22 @@ def test_postgres_connection(config: dict) -> bool:
         return False
 
 
+# Configure DATABASES from Railway-provided DATABASE_URL when available.
 database_url = os.getenv('DATABASE_URL') or os.getenv('DB_URL')
-db_engine = os.getenv('DB_ENGINE', '').lower()
-
 if database_url:
     try:
-        parsed_db = dj_database_url.parse(
-            database_url,
-            conn_max_age=600,
-            ssl_require=IS_PRODUCTION,
-        )
+        DATABASES = {
+            'default': dj_database_url.parse(
+                database_url,
+                conn_max_age=600,
+                ssl_require=IS_PRODUCTION,
+            )
+        }
     except Exception as exc:
-        logging.warning('No se pudo parsear DATABASE_URL/DB_URL; usando SQLite temporalmente: %s', exc)
-        parsed_db = None
-
-    if parsed_db is None:
+        logging.warning('Error parsing DATABASE_URL; falling back to SQLite: %s', exc)
         DATABASES = build_sqlite_config()
-    else:
-        if IS_PRODUCTION:
-            parsed_db.setdefault('OPTIONS', {})
-            parsed_db['OPTIONS'].setdefault('sslmode', 'require')
-
-        if parsed_db.get('ENGINE') == 'django.db.backends.postgresql' and not test_postgres_connection(parsed_db):
-            DATABASES = build_sqlite_config()
-        else:
-            DATABASES = {'default': parsed_db}
-elif db_engine == 'sqlite3' or os.getenv('CI', '').lower() in {'1', 'true', 'yes'}:
-    DATABASES = build_sqlite_config()
 else:
-    db_sslmode = os.getenv('DB_SSLMODE', 'require' if IS_PRODUCTION else 'prefer')
-    postgres_config = {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.getenv('DB_NAME', ''),
-        'USER': os.getenv('DB_USER', ''),
-        'PASSWORD': os.getenv('DB_PASSWORD', ''),
-        'HOST': os.getenv('DB_HOST', ''),
-        'PORT': os.getenv('DB_PORT', '5432'),
-        'OPTIONS': {
-            'sslmode': db_sslmode,
-        },
-    }
-
-    if test_postgres_connection(postgres_config):
-        DATABASES = {'default': postgres_config}
-    else:
-        DATABASES = build_sqlite_config()
+    DATABASES = build_sqlite_config()
 
 
 # Password validation
@@ -271,23 +241,11 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # Configuración de CORS (Compartir recursos entre dominios)
 # En desarrollo: permite localhost:5173 (Vite React)
 # En producción: debe estar en .env
-cors_origins_env = os.getenv('CORS_ALLOWED_ORIGINS')
-if cors_origins_env:
-    CORS_ALLOWED_ORIGINS = [
-        origin.strip() for origin in cors_origins_env.split(',')
-        if origin.strip()
-    ]
-    CORS_ALLOW_ALL_ORIGINS = False
-    CORS_ORIGIN_ALLOW_ALL = False
-    CORS_ORIGIN_WHITELIST = CORS_ALLOWED_ORIGINS
-else:
-    # Si no se define CORS_ALLOWED_ORIGINS, permitimos todas las orígenes
-    # para evitar bloqueos de CORS en deployment y facilitar la comunicación
-    # entre el frontend desplegado en Vercel y el backend en Back4App.
-    CORS_ALLOWED_ORIGINS = []
-    CORS_ALLOW_ALL_ORIGINS = True
-    CORS_ORIGIN_ALLOW_ALL = True
-    CORS_ORIGIN_WHITELIST = []
+CORS_ALLOWED_ORIGINS = []
+# Emergency mode: allow all origins to prioritize connectivity for delivery today.
+CORS_ALLOW_ALL_ORIGINS = True
+CORS_ORIGIN_ALLOW_ALL = True
+CORS_ORIGIN_WHITELIST = []
 
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_HEADERS = list(default_headers) + [

@@ -4,6 +4,7 @@ FROM python:3.11-slim
 # 2. Set Python runtime environment variables
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
+# Railway injects a dynamic PORT environment variable. Default to 8000 for local runs.
 ENV PORT=8000
 
 # 3. Install system dependencies needed to build PostgreSQL and Python packages
@@ -36,8 +37,9 @@ RUN mkdir -p /app/staticfiles && chown -R django:django /app && chmod -R 777 /ap
 # 9. Use the non-root django user for runtime
 USER django
 
-# 9. Expose the port expected by Back4App
+# 9. Expose the default port (Railway provides PORT at runtime)
 EXPOSE 8000
 
-# 10. Run static collection, database migrations, create admin user if needed and start Gunicorn
-CMD ["sh", "-c", "python manage.py collectstatic --noinput && python manage.py migrate --noinput && python manage.py create_default_superuser && gunicorn backend.wsgi:application --bind 0.0.0.0:8000 --workers 3 --log-level info"]
+# 10. Run static collection and migrations, then start Gunicorn binding to the injected $PORT.
+# This uses the runtime $PORT provided by Railway.
+CMD ["sh", "-c", "python manage.py collectstatic --noinput && python manage.py migrate --noinput && python manage.py create_default_superuser && gunicorn backend.wsgi:application --bind 0.0.0.0:$PORT --workers 3 --log-level info"]
