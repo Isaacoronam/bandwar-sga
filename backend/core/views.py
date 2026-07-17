@@ -85,6 +85,13 @@ class IsEstudiante(permissions.BasePermission):
             return False
 
 
+@api_view(['GET'])
+@permission_classes([permissions.AllowAny])
+def health_check(request):
+    """Endpoint simple para verificar el estado del backend."""
+    return Response({"status": "healthy"}, status=status.HTTP_200_OK)
+
+
 class CustomTokenObtainPairView(TokenObtainPairView):
     """
     Vista personalizada para obtener tokens JWT.
@@ -532,7 +539,8 @@ class InstrumentoViewSet(viewsets.ModelViewSet):
         """
         if self.request.method in permissions.SAFE_METHODS:
             # GET, HEAD, OPTIONS - Permitir a estudiantes y profesores
-            return [permissions.IsAuthenticated()]
+            # Allow public read access for safe methods (list/detail/disponibles)
+            return [permissions.AllowAny()]
         else:
             # POST, PUT, PATCH, DELETE - Solo profesores
             return [permissions.IsAuthenticated(), IsProfesor()]
@@ -637,16 +645,18 @@ class InstrumentoViewSet(viewsets.ModelViewSet):
 
             if page is not None:
                 serializer = self.get_serializer(page, many=True)
+                user_cedula = getattr(request.user, 'cedula', 'anonymous')
                 logger.info(
                     f"[INFO] [{datetime.now().isoformat()}]: "
-                    f"Usuario {request.user.cedula} consultó {len(page)} instrumentos disponibles"
+                    f"Usuario {user_cedula} consultó {len(page)} instrumentos disponibles"
                 )
                 return self.get_paginated_response(serializer.data)
 
             serializer = self.get_serializer(qs, many=True)
+            user_cedula = getattr(request.user, 'cedula', 'anonymous')
             logger.info(
                 f"[INFO] [{datetime.now().isoformat()}]: "
-                f"Usuario {request.user.cedula} consultó {qs.count()} instrumentos disponibles"
+                f"Usuario {user_cedula} consultó {qs.count()} instrumentos disponibles"
             )
             return Response(serializer.data)
 
