@@ -42,4 +42,4 @@ EXPOSE 8000
 
 # 10. Run static collection and migrations, then start Gunicorn binding to the injected $PORT.
 # This uses the runtime $PORT provided by Railway.
-CMD ["sh", "-c", "python manage.py collectstatic --noinput && python manage.py migrate --noinput && python manage.py create_default_superuser && gunicorn backend.wsgi:application --bind 0.0.0.0:$PORT --workers 3 --log-level info"]
+CMD ["sh", "-c", "python manage.py collectstatic --noinput && python manage.py migrate --noinput && python manage.py create_default_superuser && gunicorn backend.wsgi:application --bind 0.0.0.0:${PORT:-8000} --workers 3 --log-level info"]

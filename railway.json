@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "project": {
+    "name": "bandwar-sga-railway-staging"
+  },
+  "services": [
+    {
+      "name": "web",
+      "type": "docker",
+      "dockerfile": "Dockerfile",
+      "build": {
+        "context": "."
+      },
+      "startCommand": "sh -c \"python manage.py collectstatic --noinput && python manage.py migrate --noinput && python manage.py create_default_superuser && gunicorn backend.wsgi:application --bind 0.0.0.0:$PORT --workers 3 --log-level info\""
+    }
+  ]
+}
