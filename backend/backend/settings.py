@@ -64,6 +64,13 @@ SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 # Allow the Vercel frontend and the Back4App backend domain to be treated as trusted origins for CSRF.
 configured_csrf_origins = parse_env_list(os.getenv('CSRF_TRUSTED_ORIGINS', ''))
+railway_domains = parse_env_list(os.getenv('RAILWAY_DOMAINS', ''))
+railway_public_domain = os.getenv('RAILWAY_PUBLIC_DOMAIN', '')
+if railway_public_domain:
+    railway_domains.append(
+        railway_public_domain if railway_public_domain.startswith(('http://', 'https://')) else f'https://{railway_public_domain}'
+    )
+
 default_csrf_origins = [
     'https://bandwar-qzwu6u4su-bandwar-team.vercel.app',
     'https://bandwar-e75s4ztaz-bandwar-team.vercel.app',
@@ -81,7 +88,7 @@ local_csrf_origins = [
     'http://127.0.0.1:3000',
 ]
 
-CSRF_TRUSTED_ORIGINS = list(dict.fromkeys(configured_csrf_origins + default_csrf_origins + local_csrf_origins))
+CSRF_TRUSTED_ORIGINS = list(dict.fromkeys(configured_csrf_origins + railway_domains + default_csrf_origins + local_csrf_origins))
 
 
 # Application definition

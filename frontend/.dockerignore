@@ -1,0 +1,8 @@
+node_modules
+npm-debug.log
+.vite
+.dist
+coverage
+.git
+.gitignore
+Dockerfile
