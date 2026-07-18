@@ -61,12 +61,12 @@ const INSTRUMENTOS = [
 ];
 
 const FRAMES = [
-  { file: '${instrumento}.jpeg', label: 'Instrumento' },
-  { file: 'atencion_${instrumento}.jpeg', label: '¡Atención!' },
-  { file: 'descanso_${instrumento}.jpeg', label: 'A Discreción' },
-  { file: 'preparado_${instrumento}.jpeg', label: 'Prevenidos' },
-  { file: 'marcha_${instrumento}.jpeg', label: 'En Marcha' },
-  { file: 'alto_${instrumento}.jpeg', label: '¡Alto!' },
+  { file: (instrumento) => `${instrumento}.jpeg`, label: 'Instrumento' },
+  { file: (instrumento) => `atencion_${instrumento}.jpeg`, label: '¡Atención!' },
+  { file: (instrumento) => `descanso_${instrumento}.jpeg`, label: 'A Discreción' },
+  { file: (instrumento) => `preparado_${instrumento}.jpeg`, label: 'Prevenidos' },
+  { file: (instrumento) => `marcha_${instrumento}.jpeg`, label: 'En Marcha' },
+  { file: (instrumento) => `alto_${instrumento}.jpeg`, label: '¡Alto!' },
 ];
 
 function OrdenCerrado() {
@@ -99,20 +99,22 @@ function OrdenCerrado() {
   const imageMap = useMemo(() => {
     const modules = import.meta.glob('../../assets/img/orden_cerrado/*/*.{jpeg,jpg,png}', { eager: true, as: 'url' });
     return Object.entries(modules).reduce((acc, [path, url]) => {
-      const normalizedPath = path.replace('\\', '/');
+      const normalizedPath = path.replace(/\\/g, '/');
       const match = normalizedPath.match(/orden_cerrado\/([^/]+)\/([^/]+)$/);
       if (!match) return acc;
       const [, instrumentKey, fileName] = match;
-      acc[instrumentKey] = acc[instrumentKey] || {};
-      acc[instrumentKey][fileName] = url;
+      const key = instrumentKey.toLowerCase();
+      acc[key] = acc[key] || {};
+      acc[key][fileName.toLowerCase()] = url;
       return acc;
     }, {});
   }, []);
 
   const selectedData = INSTRUMENTOS.find((item) => item.key === selectedInstrument) || INSTRUMENTOS[0];
+  const selectedKey = selectedInstrument?.toLowerCase() || assignedInstrument;
   const currentFrame = FRAMES[frameIndex];
-  const imageName = currentFrame.file.replace('${instrumento}', selectedInstrument);
-  const currentImage = imageMap[selectedInstrument]?.[imageName] || imageMap[selectedInstrument]?.[imageName.replace(/_${selectedInstrument}/, '')] || '';
+  const imageName = currentFrame.file(selectedKey).toLowerCase();
+  const currentImage = imageMap[selectedKey]?.[imageName] || '';
 
   const handleSelectInstrument = (key) => {
     setSelectedInstrument(key);
