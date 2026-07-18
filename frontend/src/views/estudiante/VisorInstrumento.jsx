@@ -78,8 +78,14 @@ export default function VisorInstrumento() {
                   <Canvas
                     camera={{ position: [0, 0, 5], fov: 60 }}
                     dpr={[1, 1.5]}
-                    gl={{ alpha: true, antialias: true, powerPreference: 'low-power' }}
+                    gl={{ alpha: true, antialias: true, preserveDrawingBuffer: false, powerPreference: 'low-power' }}
                     style={{ width: '100%', height: '100%' }}
+                    onCreated={({ gl }) => {
+                      gl.domElement.addEventListener('webglcontextlost', (event) => {
+                        event.preventDefault();
+                        console.warn('WebGL context lost; falling back to static UI.');
+                      });
+                    }}
                   >
                     <ambientLight intensity={0.75} />
                     <directionalLight position={[5, 8, 2]} intensity={1.2} />

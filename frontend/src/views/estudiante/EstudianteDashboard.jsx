@@ -289,8 +289,14 @@ function EstudianteDashboard() {
                     <Canvas
                       camera={{ position: [0, 0, 4.5], fov: 58 }}
                       dpr={[1, 1.5]}
-                      gl={{ alpha: true, antialias: true, powerPreference: 'low-power' }}
+                      gl={{ alpha: true, antialias: true, preserveDrawingBuffer: false, powerPreference: 'low-power' }}
                       style={{ width: '100%', height: '100%' }}
+                      onCreated={({ gl }) => {
+                        gl.domElement.addEventListener('webglcontextlost', (event) => {
+                          event.preventDefault();
+                          console.warn('WebGL context lost; falling back to static UI.');
+                        });
+                      }}
                     >
                       <ambientLight intensity={0.75} />
                       <directionalLight position={[4, 6, 4]} intensity={1} />
