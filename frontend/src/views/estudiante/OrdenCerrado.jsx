@@ -128,14 +128,23 @@ function OrdenCerrado() {
       setImageChecked(true);
       return;
     }
+    // Debug logs to diagnose production asset resolution
+    try {
+      console.log('OrdenCerrado:imageMap[selectedKey]:', imageMap[selectedKey]);
+      console.log('OrdenCerrado:currentImage:', currentImage);
+    } catch (e) {
+      console.warn('OrdenCerrado:log failed', e);
+    }
 
     // Validate image URL by attempting to load it
     const img = new Image();
     img.onload = () => {
+      console.log('OrdenCerrado: image loaded successfully ->', currentImage);
       setDisplayedImage(currentImage);
       setImageChecked(true);
     };
-    img.onerror = () => {
+    img.onerror = (err) => {
+      console.warn('OrdenCerrado: image failed to load ->', currentImage, err);
       setDisplayedImage(placeholderImg);
       setImageChecked(true);
     };
