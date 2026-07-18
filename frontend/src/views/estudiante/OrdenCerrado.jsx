@@ -99,7 +99,8 @@ function OrdenCerrado() {
   const imageMap = useMemo(() => {
     const modules = import.meta.glob('../../assets/img/orden_cerrado/*/*.{jpeg,jpg,png}', { eager: true, as: 'url' });
     return Object.entries(modules).reduce((acc, [path, url]) => {
-      const match = path.match(/orden_cerrado\/([^/]+)\/([^/]+)$/);
+      const normalizedPath = path.replace('\\', '/');
+      const match = normalizedPath.match(/orden_cerrado\/([^/]+)\/([^/]+)$/);
       if (!match) return acc;
       const [, instrumentKey, fileName] = match;
       acc[instrumentKey] = acc[instrumentKey] || {};
@@ -111,7 +112,7 @@ function OrdenCerrado() {
   const selectedData = INSTRUMENTOS.find((item) => item.key === selectedInstrument) || INSTRUMENTOS[0];
   const currentFrame = FRAMES[frameIndex];
   const imageName = currentFrame.file.replace('${instrumento}', selectedInstrument);
-  const currentImage = imageMap[selectedInstrument]?.[imageName] || '';
+  const currentImage = imageMap[selectedInstrument]?.[imageName] || imageMap[selectedInstrument]?.[imageName.replace(/_${selectedInstrument}/, '')] || '';
 
   const handleSelectInstrument = (key) => {
     setSelectedInstrument(key);
