@@ -7,3 +7,4 @@ django-cors-headers
 gunicorn==22.0.0
 dj-database-url
 whitenoise
+python-json-logger

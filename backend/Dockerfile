@@ -7,27 +7,24 @@ ENV PORT=8000
 WORKDIR /app
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends gcc libpq-dev python3-dev build-essential \
+    && apt-get install -y --no-install-recommends curl gcc libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
-COPY . /tmp/build-context
+RUN groupadd --system django \
+    && useradd --system --gid django --home /app --shell /usr/sbin/nologin django
 
-RUN if [ -f /tmp/build-context/requirements.txt ]; then \
-        cp /tmp/build-context/requirements.txt /app/requirements.txt; \
-    else \
-        cp /tmp/build-context/backend/requirements.txt /app/requirements.txt; \
-    fi \
-    && if [ -d /tmp/build-context/backend ]; then \
-        cp -r /tmp/build-context/backend/. /app/; \
-    else \
-        cp -r /tmp/build-context/. /app/; \
-    fi \
-    && rm -rf /tmp/build-context
-
+COPY requirements.txt /tmp/requirements.txt
 RUN python -m pip install --upgrade pip setuptools wheel \
-    && python -m pip install --no-cache-dir -r /app/requirements.txt
+    && python -m pip install --no-cache-dir -r /tmp/requirements.txt
 
-RUN mkdir -p /app/staticfiles
+COPY . /app/
+
+RUN mkdir -p /app/staticfiles /app/logs /app/media \
+    && chown -R django:django /app \
+    && chmod -R 755 /app/staticfiles /app/logs /app/media \
+    && find /app -type f -exec chmod 644 {} +
+
+USER django
 
 EXPOSE 8000
 
