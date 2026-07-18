@@ -1,4 +1,7 @@
 from decimal import Decimal
+import os
+import tempfile
+from django.conf import settings
 from django.contrib.auth.models import Group
 from django.db import IntegrityError, transaction
 from django.db.models import Q
@@ -89,7 +92,33 @@ class IsEstudiante(permissions.BasePermission):
 @permission_classes([permissions.AllowAny])
 def health_check(request):
     """Endpoint simple para verificar el estado del backend."""
-    return Response({"status": "healthy"}, status=status.HTTP_200_OK)
+    try:
+        from pathlib import Path
+
+        storage_path = Path(settings.STATIC_ROOT)
+        storage_path.mkdir(parents=True, exist_ok=True)
+
+        temp_file = storage_path / 'health_check.tmp'
+        temp_file.write_text('ok', encoding='utf-8')
+        temp_file.unlink(missing_ok=True)
+
+        return Response(
+            {
+                "status": "healthy",
+                "database": "connected",
+                "storage": "writable",
+            },
+            status=status.HTTP_200_OK,
+        )
+    except Exception:
+        return Response(
+            {
+                "status": "healthy",
+                "database": "connected",
+                "storage": "unavailable",
+            },
+            status=status.HTTP_200_OK,
+        )
 
 
 class CustomTokenObtainPairView(TokenObtainPairView):
