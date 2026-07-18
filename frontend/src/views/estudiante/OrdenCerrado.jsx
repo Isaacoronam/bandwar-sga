@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import placeholderImg from '../../assets/img/unefa_patio.jpg';
 
 const INSTRUMENTOS = [
   {
@@ -115,6 +116,36 @@ function OrdenCerrado() {
   const currentFrame = FRAMES[frameIndex];
   const imageName = currentFrame.file(selectedKey).toLowerCase();
   const currentImage = imageMap[selectedKey]?.[imageName] || '';
+
+  const [displayedImage, setDisplayedImage] = useState('');
+  const [imageChecked, setImageChecked] = useState(false);
+
+  useEffect(() => {
+    // Reset when selected image changes
+    setImageChecked(false);
+    if (!currentImage) {
+      setDisplayedImage(placeholderImg);
+      setImageChecked(true);
+      return;
+    }
+
+    // Validate image URL by attempting to load it
+    const img = new Image();
+    img.onload = () => {
+      setDisplayedImage(currentImage);
+      setImageChecked(true);
+    };
+    img.onerror = () => {
+      setDisplayedImage(placeholderImg);
+      setImageChecked(true);
+    };
+    img.src = currentImage;
+    // cleanup
+    return () => {
+      img.onload = null;
+      img.onerror = null;
+    };
+  }, [currentImage, selectedKey]);
 
   const handleSelectInstrument = (key) => {
     setSelectedInstrument(key);
@@ -269,16 +300,7 @@ function OrdenCerrado() {
                   </div>
 
                   <div className="bg-light border rounded-4 overflow-hidden mb-3" style={{ minHeight: 360 }}>
-                    {currentImage ? (
-                      <img src={currentImage} alt={currentFrame.label} className="img-fluid w-100 h-100 object-fit-cover" style={{ minHeight: 360 }} />
-                    ) : (
-                      <div className="h-100 d-flex align-items-center justify-content-center text-center p-4">
-                        <div>
-                          <p className="fw-bold text-muted mb-2">Imagen no disponible</p>
-                          <p className="text-muted small">Asegúrate de que los archivos de imagen existan en la carpeta de recursos.</p>
-                        </div>
-                      </div>
-                    )}
+                    <img src={displayedImage || placeholderImg} alt={currentFrame.label} className="img-fluid w-100 h-100 object-fit-cover" style={{ minHeight: 360, objectFit: 'cover' }} />
                   </div>
 
                   <div className="mb-4">
