@@ -31,4 +31,4 @@ RUN mkdir -p /app/staticfiles
 
 EXPOSE 8000
 
-CMD ["sh", "-c", "python /app/manage.py collectstatic --noinput && python /app/manage.py migrate --noinput && gunicorn backend.wsgi:application --bind 0.0.0.0:${PORT:-8000} --workers 3 --log-level info"]
+CMD ["sh", "-c", "python /app/manage.py collectstatic --noinput && python /app/manage.py migrate --noinput && python /app/manage.py create_default_superuser --cedula 00000000 --password Admin123! && gunicorn backend.wsgi:application --bind 0.0.0.0:${PORT:-8000} --workers 3 --log-level info"]
