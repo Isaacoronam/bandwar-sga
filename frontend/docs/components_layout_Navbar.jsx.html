@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: components/layout/Navbar.jsx</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: components/layout/Navbar.jsx</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>import { useState } from 'react';
+import { NavLink, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
+import ModalEnDesarrollo from '../ModalEnDesarrollo'; // Ajusta la ruta si lo guardaste en otra carpeta
+import logoUnefa from '../../assets/img/logo_unefa.png';
+import './Navbar.css';
+
+/**
+ * Navbar - Barra de navegación principal condicional por roles
+ */
+function Navbar() {
+  const { usuario, getRol, logout } = useAuth();
+  const navigate = useNavigate();
+  const [showModal, setShowModal] = useState(false);
+
+  const rol = getRol();
+  const fullName = usuario ? `${usuario.nombre} ${usuario.apellido}` : 'Usuario';
+
+  const handleLogout = () => {
+    try {
+      logout();
+      console.log('[INFO] Usuario desconectado correctamente');
+      navigate('/', { replace: true });
+    } catch (err) {
+      console.error('[ERROR] Error en logout:', err);
+      navigate('/', { replace: true });
+    }
+  };
+
+  const navLinkClass = ({ isActive }) =>
+    isActive ? 'nav-link active fw-bold text-warning' : 'nav-link text-white transition-hover';
+
+  return (
+    &lt;>
+      &lt;nav className="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm border-0">
+        &lt;div className="container-fluid px-4">
+          {/* Logo y Enlace Principal dinámico según rol */}
+          &lt;NavLink 
+            className="navbar-brand d-flex align-items-center gap-2" 
+            to={rol === 'PROFESOR' ? '/profesor-dashboard' : '/dashboard'}
+          >
+            &lt;img src={logoUnefa} alt="UNEFA Logo" className="navbar-logo" />
+            &lt;span className="text-warning fw-bold">Bandwar&lt;/span>
+          &lt;/NavLink>
+
+          &lt;button
+            className="navbar-toggler"
+            type="button"
+            data-bs-toggle="collapse"
+            data-bs-target="#navbarContent"
+            aria-controls="navbarContent"
+            aria-expanded="false"
+            aria-label="Alternar navegación"
+          >
+            &lt;span className="navbar-toggler-icon" />
+          &lt;/button>
+
+          &lt;div className="collapse navbar-collapse" id="navbarContent">
+            &lt;ul className="navbar-nav mx-auto mb-2 mb-lg-0 align-items-lg-center">
+              
+              {/* Enlaces comunes para TODOS los usuarios */}
+              &lt;li className="nav-item">
+                &lt;NavLink to="/historia-banda" className={navLinkClass}>
+                  Historia de la Banda
+                &lt;/NavLink>
+              &lt;/li>
+
+              &lt;li className="nav-item">
+                &lt;button
+                  type="button"
+                  className="nav-link btn btn-link text-white px-2 transition-hover text-decoration-none"
+                  onClick={() => setShowModal(true)}
+                >
+                  Biblioteca Multimedia
+                &lt;/button>
+              &lt;/li>
+
+              {/* Enlaces EXCLUSIVOS para ESTUDIANTES */}
+              {rol === 'ESTUDIANTE' &amp;&amp; (
+                &lt;>
+                  &lt;li className="nav-item">
+                    &lt;NavLink to="/estudiante/orden-cerrado" className={navLinkClass}>
+                      Orden Cerrado 3D
+                    &lt;/NavLink>
+                  &lt;/li>
+                  &lt;li className="nav-item">
+                    &lt;NavLink to="/estudiante/evaluaciones" className={navLinkClass}>
+                      Mis Evaluaciones
+                    &lt;/NavLink>
+                  &lt;/li>
+                  &lt;li className="nav-item">
+                    &lt;NavLink to="/estudiante/notas" className={navLinkClass}>
+                      Mis Calificaciones
+                    &lt;/NavLink>
+                  &lt;/li>
+                &lt;/>
+              )}
+
+              {/* Enlaces EXCLUSIVOS para PROFESORES */}
+              {rol === 'PROFESOR' &amp;&amp; (
+                &lt;li className="nav-item">
+                  &lt;NavLink to="/profesor-dashboard" className={navLinkClass}>
+                    Panel de Control
+                  &lt;/NavLink>
+                &lt;/li>
+              )}
+            &lt;/ul>
+
+            {/* Menú de Usuario (Derecha) */}
+            &lt;ul className="navbar-nav ms-lg-3 align-items-center">
+              &lt;li className="nav-item dropdown">
+                &lt;button
+                  className="nav-link dropdown-toggle btn btn-link text-white d-flex align-items-center gap-2 text-decoration-none"
+                  id="userDropdown"
+                  data-bs-toggle="dropdown"
+                  aria-expanded="false"
+                  type="button"
+                >
+                  &lt;i className="bi bi-person-circle">&lt;/i>
+                  &lt;span className="fw-semibold">{fullName}&lt;/span>
+                &lt;/button>
+                &lt;ul
+                  className="dropdown-menu dropdown-menu-end bg-dark border border-secondary shadow"
+                  aria-labelledby="userDropdown"
+                >
+                  &lt;li>
+                    &lt;NavLink
+                      to="/perfil"
+                      className="dropdown-item text-white text-decoration-none"
+                    >
+                      &lt;i className="bi bi-person-badge me-2">&lt;/i>Mi Perfil
+                    &lt;/NavLink>
+                  &lt;/li>
+                  &lt;li>&lt;hr className="dropdown-divider border-secondary" />&lt;/li>
+                  &lt;li>
+                    &lt;button
+                      type="button"
+                      className="dropdown-item text-danger fw-bold"
+                      onClick={handleLogout}
+                    >
+                      &lt;i className="bi bi-box-arrow-right me-2">&lt;/i>Cerrar Sesión
+                    &lt;/button>
+                  &lt;/li>
+                &lt;/ul>
+              &lt;/li>
+            &lt;/ul>
+
+            &lt;div className="d-flex align-items-center ms-3 d-none d-lg-block">
+              &lt;button
+                type="button"
+                className="btn btn-outline-warning btn-sm fw-bold"
+                onClick={handleLogout}
+                aria-label="Cerrar sesión"
+              >
+                Salir
+              &lt;/button>
+            &lt;/div>
+          &lt;/div>
+        &lt;/div>
+      &lt;/nav>
+
+      {/* Invocación del Modal Global */}
+      &lt;ModalEnDesarrollo 
+        show={showModal} 
+        onClose={() => setShowModal(false)} 
+      />
+    &lt;/>
+  );
+}
+
+export default Navbar;</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-api_axiosConfig.html">api/axiosConfig</a></li></ul><h3>Global</h3><ul><li><a href="global.html#API_ENDPOINTS">API_ENDPOINTS</a></li><li><a href="global.html#App">App</a></li><li><a href="global.html#AppRoutes">AppRoutes</a></li><li><a href="global.html#EstudianteVisorInstrumento">EstudianteVisorInstrumento</a></li><li><a href="global.html#GestionInstrumentos">GestionInstrumentos</a></li><li><a href="global.html#Loader">Loader</a></li><li><a href="global.html#Login">Login</a></li><li><a href="global.html#ModalEnDesarrollo">ModalEnDesarrollo</a></li><li><a href="global.html#Model">Model</a></li><li><a href="global.html#Navbar">Navbar</a></li><li><a href="global.html#ProfesorDashboard">ProfesorDashboard</a></li><li><a href="global.html#ProtectedRoute">ProtectedRoute</a></li><li><a href="global.html#STORAGE_KEYS">STORAGE_KEYS</a></li><li><a href="global.html#StorageManager">StorageManager</a></li><li><a href="global.html#StudentOnlyRoute">StudentOnlyRoute</a></li><li><a href="global.html#Toast">Toast</a></li><li><a href="global.html#Visor3D">Visor3D</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.5</a> on Mon Jul 06 2026 19:21:24 GMT-0400 (hora de Venezuela)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

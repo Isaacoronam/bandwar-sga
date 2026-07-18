@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: views/auth/Login.jsx</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: views/auth/Login.jsx</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
+import logoUnefa from '../../assets/img/logo_unefa.png';
+import './login.css';
+
+/**
+ * Login - Componente de autenticación
+ */
+function Login() {
+  const navigate = useNavigate();
+  const { login, isAuthenticated, getRol, loading } = useAuth();
+
+  const [cedula, setCedula] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const getRedirectRoute = (rol) => {
+    return rol === 'PROFESOR' ? '/profesor-dashboard' : '/dashboard';
+  };
+
+  useEffect(() => {
+    if (isAuthenticated()) {
+      const rol = getRol();
+      navigate(getRedirectRoute(rol), { replace: true });
+    }
+  }, [isAuthenticated, getRol, navigate]);
+
+  const validateForm = () => {
+    if (!cedula.trim()) {
+      setError('Por favor ingresa tu cédula');
+      return false;
+    }
+    if (!password) {
+      setError('Por favor ingresa tu contraseña');
+      return false;
+    }
+    return true;
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+
+    if (!validateForm()) return;
+
+    setIsSubmitting(true);
+
+    try {
+      const result = await login(cedula.trim(), password);
+
+      if (result.success) {
+        console.log('[INFO] Login exitoso, redirigiendo...');
+        navigate(getRedirectRoute(result.usuario.rol), { replace: true });
+      } else {
+        const errorMsg = result.error || 'Error desconocido en la autenticación';
+        setError(errorMsg);
+        console.error('[ERROR] Login falló:', errorMsg);
+      }
+    } catch (err) {
+      const errorMsg = `Error inesperado: ${err.message}`;
+      setError(errorMsg);
+      console.error('[ERROR] Excepción en handleSubmit:', err);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      &lt;div className="mockup-page-wrapper d-flex align-items-center justify-content-center">
+        &lt;div className="spinner-border text-primary" role="status">
+          &lt;span className="visually-hidden">Cargando...&lt;/span>
+        &lt;/div>
+      &lt;/div>
+    );
+  }
+
+  return (
+    &lt;div className="mockup-page-wrapper">
+      {/* BARRA SUPERIOR */}
+      &lt;header className="mockup-top-bar">
+        &lt;div className="mockup-brand">
+          &lt;img src={logoUnefa} alt="Logo UNEFA" className="mockup-header-logo" />
+          &lt;span className="mockup-header-text">BANDWAR&lt;/span>
+        &lt;/div>
+      &lt;/header>
+
+      {/* ÁREA CENTRAL DE LOGEO */}
+      &lt;main className="mockup-main-content">
+        &lt;div className="card mockup-login-card">
+          {/* Cabecera interna de la tarjeta */}
+          &lt;div className="mockup-card-header">
+            &lt;div className="d-flex align-items-center">
+              &lt;img src={logoUnefa} alt="Shield" className="mockup-card-logo" />
+              &lt;span className="mockup-card-title">BANDWAR&lt;/span>
+            &lt;/div>
+            &lt;div className="mockup-card-subtitle">INICIAR SESIÓN&lt;/div>
+          &lt;/div>
+
+          {/* Cuerpo del Formulario */}
+          &lt;div className="card-body p-4">
+            {/* Visualización de errores */}
+            {error &amp;&amp; (
+              &lt;div
+                className="alert alert-danger py-2 px-3 mb-3 small text-center rounded-1"
+                role="alert"
+                aria-live="assertive"
+              >
+                {error}
+              &lt;/div>
+            )}
+
+            &lt;form onSubmit={handleSubmit} noValidate>
+              {/* Input: Usuario */}
+              &lt;div className="mb-3">
+                &lt;label htmlFor="cedula" className="form-label">
+                  Cédula
+                &lt;/label>
+                &lt;input
+                  id="cedula"
+                  type="text"
+                  className="form-control"
+                  placeholder="Ej: 12345678"
+                  value={cedula}
+                  onChange={(e) => {
+                    setCedula(e.target.value);
+                    setError(''); // Limpiar error al escribir
+                  }}
+                  disabled={isSubmitting}
+                  required
+                />
+              &lt;/div>
+
+              {/* Input: Contraseña */}
+              &lt;div className="mb-4">
+                &lt;label htmlFor="password" className="form-label">
+                  Contraseña
+                &lt;/label>
+                &lt;input
+                  id="password"
+                  type="password"
+                  className="form-control"
+                  placeholder="Ingresa tu contraseña"
+                  value={password}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    setError(''); // Limpiar error al escribir
+                  }}
+                  disabled={isSubmitting}
+                  required
+                />
+              &lt;/div>
+
+              {/* Botón Submit */}
+              &lt;button
+                type="submit"
+                className="btn btn-primary w-100"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  &lt;>
+                    &lt;span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true" />
+                    Iniciando sesión...
+                  &lt;/>
+                ) : (
+                  'Iniciar Sesión'
+                )}
+              &lt;/button>
+            &lt;/form>
+          &lt;/div>
+
+          {/* Pie de la tarjeta */}
+          &lt;div className="card-footer bg-light text-center py-3">
+            &lt;small className="text-muted">
+              © 2026 Bandwar - Sistema de Gestion de Aprendizaje Universitario
+            &lt;/small>
+          &lt;/div>
+        &lt;/div>
+      &lt;/main>
+    &lt;/div>
+  );
+}
+
+export default Login;</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-api_axiosConfig.html">api/axiosConfig</a></li></ul><h3>Global</h3><ul><li><a href="global.html#API_ENDPOINTS">API_ENDPOINTS</a></li><li><a href="global.html#App">App</a></li><li><a href="global.html#AppRoutes">AppRoutes</a></li><li><a href="global.html#EstudianteVisorInstrumento">EstudianteVisorInstrumento</a></li><li><a href="global.html#GestionInstrumentos">GestionInstrumentos</a></li><li><a href="global.html#Loader">Loader</a></li><li><a href="global.html#Login">Login</a></li><li><a href="global.html#ModalEnDesarrollo">ModalEnDesarrollo</a></li><li><a href="global.html#Model">Model</a></li><li><a href="global.html#Navbar">Navbar</a></li><li><a href="global.html#ProfesorDashboard">ProfesorDashboard</a></li><li><a href="global.html#ProtectedRoute">ProtectedRoute</a></li><li><a href="global.html#STORAGE_KEYS">STORAGE_KEYS</a></li><li><a href="global.html#StorageManager">StorageManager</a></li><li><a href="global.html#StudentOnlyRoute">StudentOnlyRoute</a></li><li><a href="global.html#Toast">Toast</a></li><li><a href="global.html#Visor3D">Visor3D</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.5</a> on Mon Jul 06 2026 19:21:24 GMT-0400 (hora de Venezuela)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>
