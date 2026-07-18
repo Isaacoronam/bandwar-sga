@@ -4,18 +4,19 @@ import { OrbitControls } from '@react-three/drei';
 import { useAuth } from '../../context/AuthContext';
 import InstrumentoModel from '../../components/3d/InstrumentoModel';
 import CanvasErrorBoundary from '../../components/ErrorBoundary';
+import backgroundImage from '../../assets/img/unefa_patio.jpg';
 import '../../styles/visor3d.css';
 
-const BACKGROUND_URL = new URL('../../assets/img/unefa_patio.jpg', import.meta.url).href;
+const resolveAssetPath = (path) => `${import.meta.env.BASE_URL}${path.replace(/^\/+/, '')}`;
 
 const MODEL_MAP = {
-  bombo: '/assets/models/bombo.glb',
-  trompeta: '/assets/models/trompeta.glb',
-  granaderos: '/assets/models/granaderos.glb',
-  lira: '/assets/models/lira.glb',
-  platillos: '/assets/models/platillos.glb',
-  redoblante: '/assets/models/redoblante.glb',
-  tambor_mayor: '/assets/models/tambor_mayor.glb',
+  bombo: resolveAssetPath('/assets/models/bombo.glb'),
+  trompeta: resolveAssetPath('/assets/models/trompeta.glb'),
+  granaderos: resolveAssetPath('/assets/models/granaderos.glb'),
+  lira: resolveAssetPath('/assets/models/lira.glb'),
+  platillos: resolveAssetPath('/assets/models/platillos.glb'),
+  redoblante: resolveAssetPath('/assets/models/redoblante.glb'),
+  tambor_mayor: resolveAssetPath('/assets/models/tambor_mayor.glb'),
 };
 
 const FALLBACK_INSTRUMENT_LABEL = 'Modo de Práctica: Tambor Mayor (Sin instrumento asignado)';
@@ -53,7 +54,7 @@ export default function VisorInstrumento() {
   const instrumentLabel = useMemo(() => (isFallbackInstrument ? FALLBACK_INSTRUMENT_LABEL : perfilInstrumento), [isFallbackInstrument, perfilInstrumento]);
 
   return (
-    <div className="visor-immersive-container" style={{ backgroundImage: `url(${BACKGROUND_URL})` }}>
+    <div className="visor-immersive-container" style={{ backgroundImage: `url(${backgroundImage})` }}>
       <div className="visor-immersive-overlay" />
 
       <div className="visor-immersive-content">
@@ -76,7 +77,8 @@ export default function VisorInstrumento() {
                 <CanvasErrorBoundary>
                   <Canvas
                     camera={{ position: [0, 0, 5], fov: 60 }}
-                    gl={{ alpha: true }}
+                    dpr={[1, 1.5]}
+                    gl={{ alpha: true, antialias: true, powerPreference: 'low-power' }}
                     style={{ width: '100%', height: '100%' }}
                   >
                     <ambientLight intensity={0.75} />

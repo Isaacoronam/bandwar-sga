@@ -8,14 +8,16 @@ import InstrumentoModel from '../../components/3d/InstrumentoModel';
 import CanvasErrorBoundary from '../../components/ErrorBoundary';
 import './EstudianteDashboard.css';
 
+const resolveAssetPath = (path) => `${import.meta.env.BASE_URL}${path.replace(/^\/+/, '')}`;
+
 const MODEL_MAP = {
-  platillos: '/assets/models/platillos.glb',
-  trompeta: '/assets/models/trompeta.glb',
-  granaderos: '/assets/models/granaderos.glb',
-  lira: '/assets/models/lira.glb',
-  bombo: '/assets/models/bombo.glb',
-  tambor_mayor: '/assets/models/tambor_mayor.glb',
-  redoblante: '/assets/models/redoblante.glb',
+  platillos: resolveAssetPath('/assets/models/platillos.glb'),
+  trompeta: resolveAssetPath('/assets/models/trompeta.glb'),
+  granaderos: resolveAssetPath('/assets/models/granaderos.glb'),
+  lira: resolveAssetPath('/assets/models/lira.glb'),
+  bombo: resolveAssetPath('/assets/models/bombo.glb'),
+  tambor_mayor: resolveAssetPath('/assets/models/tambor_mayor.glb'),
+  redoblante: resolveAssetPath('/assets/models/redoblante.glb'),
 };
 
 const INSTRUMENT_INFO = {
@@ -284,7 +286,12 @@ function EstudianteDashboard() {
               <div className="viewer-frame" style={{ minHeight: 460 }}>
                 {modelUrl ? (
                   <CanvasErrorBoundary>
-                    <Canvas camera={{ position: [0, 0, 4.5], fov: 58 }} style={{ width: '100%', height: '100%' }}>
+                    <Canvas
+                      camera={{ position: [0, 0, 4.5], fov: 58 }}
+                      dpr={[1, 1.5]}
+                      gl={{ alpha: true, antialias: true, powerPreference: 'low-power' }}
+                      style={{ width: '100%', height: '100%' }}
+                    >
                       <ambientLight intensity={0.75} />
                       <directionalLight position={[4, 6, 4]} intensity={1} />
                       <directionalLight position={[-4, 2, -3]} intensity={0.35} />
