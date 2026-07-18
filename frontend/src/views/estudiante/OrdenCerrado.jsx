@@ -106,7 +106,40 @@ function OrdenCerrado() {
       const [, instrumentKey, fileName] = match;
       const key = instrumentKey.toLowerCase();
       acc[key] = acc[key] || {};
-      acc[key][fileName.toLowerCase()] = url;
+
+      // Normalize the imported value: Vite may return a module-like object in some builds
+      let resolvedUrl = '';
+      if (typeof url === 'string') {
+        resolvedUrl = url;
+      } else if (url && typeof url === 'object') {
+        if (typeof url.default === 'string') {
+          resolvedUrl = url.default;
+        } else if (typeof url.url === 'string') {
+          resolvedUrl = url.url;
+        } else if (typeof url.href === 'string') {
+          resolvedUrl = url.href;
+        } else {
+          // Fallback: try toString but guard against '[object Module]' or 'Module'
+          try {
+            const s = url.toString();
+            if (s && s !== '[object Module]' && s !== 'Module') {
+              resolvedUrl = s;
+            }
+          } catch (e) {
+            // ignore
+          }
+
+          if (!resolvedUrl) {
+            console.warn('OrdenCerrado: unexpected module value for asset', path);
+            try { console.dir(url); } catch (e) {}
+            resolvedUrl = '';
+          }
+        }
+      } else {
+        resolvedUrl = '';
+      }
+
+      acc[key][fileName.toLowerCase()] = resolvedUrl;
       return acc;
     }, {});
   }, []);
