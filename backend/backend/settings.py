@@ -12,11 +12,13 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 
 import os
 import logging
+import sys
 from pathlib import Path
 from django.core.exceptions import ImproperlyConfigured
 from dotenv import load_dotenv
 from corsheaders.defaults import default_headers, default_methods
 import dj_database_url
+from bandwar_back.settings import build_logging_config
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -111,6 +113,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
+    'bandwar_back.middleware.CorrelationIdMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -232,6 +235,13 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+MEDIA_ROOT = BASE_DIR / 'media'
+LOGS_DIR = BASE_DIR / 'logs'
+STATIC_ROOT.mkdir(parents=True, exist_ok=True)
+MEDIA_ROOT.mkdir(parents=True, exist_ok=True)
+LOGS_DIR.mkdir(parents=True, exist_ok=True)
+
+LOGGING = build_logging_config(LOGS_DIR)
 
 # Formato obligatorio para Django 5.0+ y 6.0+
 STORAGES = {

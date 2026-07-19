@@ -5,7 +5,6 @@ from .views import (
     InstrumentoViewSet, 
     CustomTokenObtainPairView, 
     VisorInteraccionViewSet,
-    health_check,
     AlumnosListView,
     AsignarInstrumentoView,
     RegistrarAlumnoView,
@@ -32,7 +31,6 @@ router.register(r'preguntas', PreguntaViewSet, basename='pregunta')
 router.register(r'opciones', OpcionViewSet, basename='opcion')
 
 urlpatterns = [
-    path('api/health/', health_check, name='health-check'),
     path('api/', include(router.urls)),
     path('api/login/', CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),

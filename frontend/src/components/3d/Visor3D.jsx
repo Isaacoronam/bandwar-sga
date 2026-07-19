@@ -1,17 +1,25 @@
-import { Suspense, useState, useRef } from 'react';
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls, useGLTF, Environment, PerspectiveCamera } from '@react-three/drei';
+import { OrbitControls, useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
 import '../../styles/visor3d.css';
+
+const resolveAssetPath = (path) => `${import.meta.env.BASE_URL}${path.replace(/^\/+/, '')}`;
 
 /**
  * Componente Model: Renderiza el modelo GLTF/GLB
  * @param {string} modelPath - Ruta al archivo .glb (ej: /assets/models/bombo.glb)
  */
-function Model({ modelPath, onLoaded }) {
+function Model({ modelPath, onLoaded, onError }) {
   const group = useRef();
-  const { scene } = useGLTF(modelPath);
+  const { scene, error } = useGLTF(modelPath);
   const [rotation, setRotation] = useState([0, 0, 0]);
+
+  useEffect(() => {
+    if (error) {
+      onError?.(error);
+    }
+  }, [error, onError]);
 
   // Auto-rotación suave del modelo
   useFrame(() => {
@@ -69,6 +77,7 @@ function Loader() {
 function Visor3D({ modelPath, nombre = 'Instrumento', altura = '500px', onInteraction }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [canvasReady, setCanvasReady] = useState(true);
   const [stats, setStats] = useState({
     rotations: 0,
     zooms: 0,
@@ -88,7 +97,14 @@ function Visor3D({ modelPath, nombre = 'Instrumento', altura = '500px', onIntera
   const handleLoaded = () => {
     setLoading(false);
     setError(null);
+    setCanvasReady(true);
     console.log('Modelo 3D cargado exitosamente:', modelPath);
+  };
+
+  const handleCanvasContextLoss = (event) => {
+    event.preventDefault();
+    setCanvasReady(false);
+    setError('El visor 3D perdió el contexto del navegador. Recarga la página para intentar nuevamente.');
   };
 
   // Actualizar estadísticas de interacción
@@ -133,12 +149,15 @@ function Visor3D({ modelPath, nombre = 'Instrumento', altura = '500px', onIntera
           </div>
         )}
 
-        {!error && (
+        {!error && canvasReady && (
           <Canvas
             camera={{ position: [0, 0, 5], fov: 50 }}
+            dpr={[1, 1.5]}
+            gl={{ antialias: true, alpha: true, powerPreference: 'low-power' }}
             onCreated={({ camera, gl }) => {
               camera.aspect = window.innerWidth / window.innerHeight;
               camera.updateProjectionMatrix();
+              gl.domElement.addEventListener('webglcontextlost', handleCanvasContextLoss);
             }}
           >
             {/* Iluminación */}
@@ -148,7 +167,7 @@ function Visor3D({ modelPath, nombre = 'Instrumento', altura = '500px', onIntera
 
             {/* Modelo 3D */}
             <Suspense fallback={<Loader />}>
-              <Model modelPath={modelPath} onLoaded={handleLoaded} />
+              <Model modelPath={modelPath} onLoaded={handleLoaded} onError={handleError} />
             </Suspense>
 
             {/* Controles orbitales */}
@@ -165,8 +184,6 @@ function Visor3D({ modelPath, nombre = 'Instrumento', altura = '500px', onIntera
               }}
             />
 
-            {/* Entorno (background light) */}
-            <Environment preset="neutral" />
           </Canvas>
         )}
       </div>

@@ -204,11 +204,13 @@ class RegistroAlumnoSerializer(serializers.Serializer):
     DEFAULT_PASSWORD = 'Bandwar2026!'
 
     def validate_cedula(self, value):
+        value = str(value).strip()
         if Usuario.objects.filter(cedula=value).exists():
             raise serializers.ValidationError('La cédula ya está registrada')
         return value
 
     def validate_email(self, value):
+        value = str(value).strip().lower()
         if Usuario.objects.filter(email=value).exists():
             raise serializers.ValidationError('El email ya está registrado')
         return value

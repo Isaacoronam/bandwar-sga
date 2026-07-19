@@ -76,9 +76,9 @@ function RegistroAlumnoForm({ show, onClose, refreshListaAlumnos, onSuccessToast
         apellido: apellido.trim(),
         email: email.trim(),
         carrera: carrera.trim(),
-        semestre: semestre,
+        semestre: Number(semestre),
         rango_militar: rangoMilitar.trim(),
-        password: cedula.trim(), // Contraseña por defecto = cédula
+        password: cedula.trim() || undefined,
       };
 
       const url = editando
@@ -101,7 +101,23 @@ function RegistroAlumnoForm({ show, onClose, refreshListaAlumnos, onSuccessToast
       }
     } catch (err) {
       console.error('[ERROR] al procesar alumno:', err);
-      setError('Error de red al intentar conectar con el servidor');
+      const serverMessage = err?.response?.data?.detail || err?.response?.data?.error;
+      const validationDetails = err?.response?.data?.details;
+      if (serverMessage || validationDetails) {
+        if (validationDetails && typeof validationDetails === 'object') {
+          const detailMessages = Object.entries(validationDetails)
+            .filter(([_, value]) => value)
+            .map(([field, value]) => `${field}: ${Array.isArray(value) ? value.join(', ') : value}`)
+            .join(' | ');
+          setError(detailMessages || serverMessage || 'Error en los datos del formulario');
+        } else {
+          setError(serverMessage || 'Error en los datos del formulario');
+        }
+      } else if (err?.response?.status === 400) {
+        setError('Error de validación del formulario. Por favor revisa los datos ingresados.');
+      } else {
+        setError('Error de red al intentar conectar con el servidor');
+      }
     } finally {
       setLoading(false);
     }

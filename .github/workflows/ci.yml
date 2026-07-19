@@ -35,4 +35,4 @@ jobs:
         CI: 'true'
       run: |
         cd backend
-        python manage.py test core.tests.CoreBusinessLogicTestCase --verbosity 2
+        python manage.py test core.tests --verbosity 2
