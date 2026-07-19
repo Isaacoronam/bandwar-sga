@@ -29,7 +29,8 @@ def health_check(request):
             status=500,
         )
 
-    storage_paths = [Path('/app/staticfiles'), Path('/app/logs')]
+    project_root = Path(__file__).resolve().parents[1]
+    storage_paths = [project_root / 'staticfiles', project_root / 'logs']
     try:
         for path in storage_paths:
             path.mkdir(parents=True, exist_ok=True)
