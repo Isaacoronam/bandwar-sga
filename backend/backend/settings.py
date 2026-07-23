@@ -52,12 +52,23 @@ SECRET_KEY = get_env_variable(
 
 DEBUG = os.getenv('DJANGO_DEBUG', os.getenv('DEBUG', 'False')).lower() in ['true', '1', 'yes']
 
-# Permitir explícitamente los dominios usados por Vercel y Back4App para evitar
-# rechazos de host y CSRF en despliegues detrás de proxy.
-# Emergency mode for Railway deployment: accept all hosts for today only.
-# WARNING: This is intentionally permissive to prioritize connectivity for
-# the production delivery. Tighten this tomorrow.
-ALLOWED_HOSTS = ['*']
+configured_hosts = parse_env_list(os.getenv('DJANGO_ALLOWED_HOSTS', ''))
+railway_public_domain = os.getenv('RAILWAY_PUBLIC_DOMAIN', '')
+railway_hosts = []
+if railway_public_domain:
+    railway_hosts.append(railway_public_domain.replace('http://', '').replace('https://', ''))
+
+local_hosts = ['localhost', '127.0.0.1']
+production_hosts = [
+    'bandwarbackend2-6otb95dv.b4a.run',
+    'bandwarbackend2-n9gg3px6.b4a.run',
+    'bandwarbackend2-h9g58o78.b4a.run',
+    'bandwarbackend1-horglklb.b4a.run',
+    'bandwar-qzwu6u4su-bandwar-team.vercel.app',
+    'bandwar-e75s4ztaz-bandwar-team.vercel.app',
+]
+
+ALLOWED_HOSTS = list(dict.fromkeys(configured_hosts + local_hosts + railway_hosts + production_hosts))
 
 # Trust proxy headers so Django sees the correct host/origin behind Back4App/CDN.
 USE_X_FORWARDED_HOST = True
