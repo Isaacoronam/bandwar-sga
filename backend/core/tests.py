@@ -129,6 +129,8 @@ class ProfesorRegistrarAlumnoTestCase(APITestCase):
             "apellido": "Prueba",
             "email": "alumno@prueba.com",
             "password": "estudiante123",
+            "carrera": "Ingeniería",
+            "semestre": 1,
         }
 
         response = self.client.post(
@@ -342,6 +344,14 @@ class VisorInteraccionTestCase(APITestCase):
     def test_registrar_interaccion_con_auth(self):
         # Placeholder: requiere implementación de autenticación en tests
         pass
+
+class HealthCheckTestCase(APITestCase):
+    def test_health_endpoint_returns_healthy(self):
+        response = self.client.get(reverse("health-check"))
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data, {"status": "healthy"})
+
 
 class CoreBusinessLogicTestCase(TestCase):
     def test_asignar_instrumento_serializer_asigna_instrumento_disponible(self):

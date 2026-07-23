@@ -19,9 +19,9 @@ class CanvasErrorBoundary extends React.Component {
       return (
         <div className="canvas-error p-3 text-center bg-light border rounded-3" style={{ minHeight: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div>
-            <h5 className="mb-2">Error al cargar el visor 3D</h5>
+            <h5 className="mb-2">Visor 3D no disponible</h5>
             <p className="text-muted small mb-0">
-              No se pudo renderizar el modelo del instrumento. Verifica la disponibilidad del archivo en el servidor.
+              El navegador perdió el contexto WebGL. Puedes recargar la vista o continuar con la información textual del instrumento.
             </p>
           </div>
         </div>

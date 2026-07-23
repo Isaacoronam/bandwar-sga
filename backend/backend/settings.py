@@ -12,11 +12,13 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 
 import os
 import logging
+import sys
 from pathlib import Path
 from django.core.exceptions import ImproperlyConfigured
 from dotenv import load_dotenv
 from corsheaders.defaults import default_headers, default_methods
 import dj_database_url
+from bandwar_back.settings import build_logging_config
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -50,12 +52,23 @@ SECRET_KEY = get_env_variable(
 
 DEBUG = os.getenv('DJANGO_DEBUG', os.getenv('DEBUG', 'False')).lower() in ['true', '1', 'yes']
 
-# Permitir explícitamente los dominios usados por Vercel y Back4App para evitar
-# rechazos de host y CSRF en despliegues detrás de proxy.
-# Emergency mode for Railway deployment: accept all hosts for today only.
-# WARNING: This is intentionally permissive to prioritize connectivity for
-# the production delivery. Tighten this tomorrow.
-ALLOWED_HOSTS = ['*']
+configured_hosts = parse_env_list(os.getenv('DJANGO_ALLOWED_HOSTS', ''))
+railway_public_domain = os.getenv('RAILWAY_PUBLIC_DOMAIN', '')
+railway_hosts = []
+if railway_public_domain:
+    railway_hosts.append(railway_public_domain.replace('http://', '').replace('https://', ''))
+
+local_hosts = ['localhost', '127.0.0.1']
+production_hosts = [
+    'bandwarbackend2-6otb95dv.b4a.run',
+    'bandwarbackend2-n9gg3px6.b4a.run',
+    'bandwarbackend2-h9g58o78.b4a.run',
+    'bandwarbackend1-horglklb.b4a.run',
+    'bandwar-qzwu6u4su-bandwar-team.vercel.app',
+    'bandwar-e75s4ztaz-bandwar-team.vercel.app',
+]
+
+ALLOWED_HOSTS = list(dict.fromkeys(configured_hosts + local_hosts + railway_hosts + production_hosts))
 
 # Trust proxy headers so Django sees the correct host/origin behind Back4App/CDN.
 USE_X_FORWARDED_HOST = True
@@ -111,6 +124,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
+    'bandwar_back.middleware.CorrelationIdMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -232,6 +246,13 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+MEDIA_ROOT = BASE_DIR / 'media'
+LOGS_DIR = BASE_DIR / 'logs'
+STATIC_ROOT.mkdir(parents=True, exist_ok=True)
+MEDIA_ROOT.mkdir(parents=True, exist_ok=True)
+LOGS_DIR.mkdir(parents=True, exist_ok=True)
+
+LOGGING = build_logging_config(LOGS_DIR)
 
 # Formato obligatorio para Django 5.0+ y 6.0+
 STORAGES = {

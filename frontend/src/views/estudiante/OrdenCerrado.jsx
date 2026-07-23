@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import placeholderImg from '../../assets/img/unefa_patio.jpg';
 
 const INSTRUMENTOS = [
   {
@@ -61,12 +62,12 @@ const INSTRUMENTOS = [
 ];
 
 const FRAMES = [
-  { file: '${instrumento}.jpeg', label: 'Instrumento' },
-  { file: 'atencion_${instrumento}.jpeg', label: '¡Atención!' },
-  { file: 'descanso_${instrumento}.jpeg', label: 'A Discreción' },
-  { file: 'preparado_${instrumento}.jpeg', label: 'Prevenidos' },
-  { file: 'marcha_${instrumento}.jpeg', label: 'En Marcha' },
-  { file: 'alto_${instrumento}.jpeg', label: '¡Alto!' },
+  { file: (instrumento) => `${instrumento}.jpeg`, label: 'Instrumento' },
+  { file: (instrumento) => `atencion_${instrumento}.jpeg`, label: '¡Atención!' },
+  { file: (instrumento) => `descanso_${instrumento}.jpeg`, label: 'A Discreción' },
+  { file: (instrumento) => `preparado_${instrumento}.jpeg`, label: 'Prevenidos' },
+  { file: (instrumento) => `marcha_${instrumento}.jpeg`, label: 'En Marcha' },
+  { file: (instrumento) => `alto_${instrumento}.jpeg`, label: '¡Alto!' },
 ];
 
 function OrdenCerrado() {
@@ -99,19 +100,94 @@ function OrdenCerrado() {
   const imageMap = useMemo(() => {
     const modules = import.meta.glob('../../assets/img/orden_cerrado/*/*.{jpeg,jpg,png}', { eager: true, as: 'url' });
     return Object.entries(modules).reduce((acc, [path, url]) => {
-      const match = path.match(/orden_cerrado\/([^/]+)\/([^/]+)$/);
+      const normalizedPath = path.replace(/\\/g, '/');
+      const match = normalizedPath.match(/orden_cerrado\/([^/]+)\/([^/]+)$/);
       if (!match) return acc;
       const [, instrumentKey, fileName] = match;
-      acc[instrumentKey] = acc[instrumentKey] || {};
-      acc[instrumentKey][fileName] = url;
+      const key = instrumentKey.toLowerCase();
+      acc[key] = acc[key] || {};
+
+      // Normalize the imported value: Vite may return a module-like object in some builds
+      let resolvedUrl = '';
+      if (typeof url === 'string') {
+        resolvedUrl = url;
+      } else if (url && typeof url === 'object') {
+        if (typeof url.default === 'string') {
+          resolvedUrl = url.default;
+        } else if (typeof url.url === 'string') {
+          resolvedUrl = url.url;
+        } else if (typeof url.href === 'string') {
+          resolvedUrl = url.href;
+        } else {
+          // Fallback: try toString but guard against '[object Module]' or 'Module'
+          try {
+            const s = url.toString();
+            if (s && s !== '[object Module]' && s !== 'Module') {
+              resolvedUrl = s;
+            }
+          } catch (e) {
+            // ignore
+          }
+
+          if (!resolvedUrl) {
+            console.warn('OrdenCerrado: unexpected module value for asset', path);
+            try { console.dir(url); } catch (e) {}
+            resolvedUrl = '';
+          }
+        }
+      } else {
+        resolvedUrl = '';
+      }
+
+      acc[key][fileName.toLowerCase()] = resolvedUrl;
       return acc;
     }, {});
   }, []);
 
   const selectedData = INSTRUMENTOS.find((item) => item.key === selectedInstrument) || INSTRUMENTOS[0];
+  const selectedKey = selectedInstrument?.toLowerCase() || assignedInstrument;
   const currentFrame = FRAMES[frameIndex];
-  const imageName = currentFrame.file.replace('${instrumento}', selectedInstrument);
-  const currentImage = imageMap[selectedInstrument]?.[imageName] || '';
+  const imageName = currentFrame.file(selectedKey).toLowerCase();
+  const currentImage = imageMap[selectedKey]?.[imageName] || '';
+
+  const [displayedImage, setDisplayedImage] = useState('');
+  const [imageChecked, setImageChecked] = useState(false);
+
+  useEffect(() => {
+    // Reset when selected image changes
+    setImageChecked(false);
+    if (!currentImage) {
+      setDisplayedImage(placeholderImg);
+      setImageChecked(true);
+      return;
+    }
+    // Debug logs to diagnose production asset resolution
+    try {
+      console.log('OrdenCerrado:imageMap[selectedKey]:', imageMap[selectedKey]);
+      console.log('OrdenCerrado:currentImage:', currentImage);
+    } catch (e) {
+      console.warn('OrdenCerrado:log failed', e);
+    }
+
+    // Validate image URL by attempting to load it
+    const img = new Image();
+    img.onload = () => {
+      console.log('OrdenCerrado: image loaded successfully ->', currentImage);
+      setDisplayedImage(currentImage);
+      setImageChecked(true);
+    };
+    img.onerror = (err) => {
+      console.warn('OrdenCerrado: image failed to load ->', currentImage, err);
+      setDisplayedImage(placeholderImg);
+      setImageChecked(true);
+    };
+    img.src = currentImage;
+    // cleanup
+    return () => {
+      img.onload = null;
+      img.onerror = null;
+    };
+  }, [currentImage, selectedKey]);
 
   const handleSelectInstrument = (key) => {
     setSelectedInstrument(key);
@@ -266,16 +342,7 @@ function OrdenCerrado() {
                   </div>
 
                   <div className="bg-light border rounded-4 overflow-hidden mb-3" style={{ minHeight: 360 }}>
-                    {currentImage ? (
-                      <img src={currentImage} alt={currentFrame.label} className="img-fluid w-100 h-100 object-fit-cover" style={{ minHeight: 360 }} />
-                    ) : (
-                      <div className="h-100 d-flex align-items-center justify-content-center text-center p-4">
-                        <div>
-                          <p className="fw-bold text-muted mb-2">Imagen no disponible</p>
-                          <p className="text-muted small">Asegúrate de que los archivos de imagen existan en la carpeta de recursos.</p>
-                        </div>
-                      </div>
-                    )}
+                    <img src={displayedImage || placeholderImg} alt={currentFrame.label} className="img-fluid w-100 h-100 object-fit-cover" style={{ minHeight: 360, objectFit: 'cover' }} />
                   </div>
 
                   <div className="mb-4">

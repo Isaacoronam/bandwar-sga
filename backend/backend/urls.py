@@ -16,8 +16,10 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from bandwar_back.views import health_check as bandwar_health_check
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('api/health/', bandwar_health_check, name='bandwar-health-check'),
     path('', include('core.urls')),
 ]

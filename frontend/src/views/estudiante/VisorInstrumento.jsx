@@ -1,21 +1,22 @@
-import React, { Suspense, useMemo } from 'react';
+import React, { Suspense, useMemo, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import { useAuth } from '../../context/AuthContext';
 import InstrumentoModel from '../../components/3d/InstrumentoModel';
 import CanvasErrorBoundary from '../../components/ErrorBoundary';
+import backgroundImage from '../../assets/img/unefa_patio.jpg';
 import '../../styles/visor3d.css';
 
-const BACKGROUND_URL = new URL('../../assets/img/unefa_patio.jpg', import.meta.url).href;
+const resolveAssetPath = (path) => `${import.meta.env.BASE_URL}${path.replace(/^\/+/, '')}`;
 
 const MODEL_MAP = {
-  bombo: '/assets/models/bombo.glb',
-  trompeta: '/assets/models/trompeta.glb',
-  granaderos: '/assets/models/granaderos.glb',
-  lira: '/assets/models/lira.glb',
-  platillos: '/assets/models/platillos.glb',
-  redoblante: '/assets/models/redoblante.glb',
-  tambor_mayor: '/assets/models/tambor_mayor.glb',
+  bombo: resolveAssetPath('/assets/models/bombo.glb'),
+  trompeta: resolveAssetPath('/assets/models/trompeta.glb'),
+  granaderos: resolveAssetPath('/assets/models/granaderos.glb'),
+  lira: resolveAssetPath('/assets/models/lira.glb'),
+  platillos: resolveAssetPath('/assets/models/platillos.glb'),
+  redoblante: resolveAssetPath('/assets/models/redoblante.glb'),
+  tambor_mayor: resolveAssetPath('/assets/models/tambor_mayor.glb'),
 };
 
 const FALLBACK_INSTRUMENT_LABEL = 'Modo de Práctica: Tambor Mayor (Sin instrumento asignado)';
@@ -53,7 +54,7 @@ export default function VisorInstrumento() {
   const instrumentLabel = useMemo(() => (isFallbackInstrument ? FALLBACK_INSTRUMENT_LABEL : perfilInstrumento), [isFallbackInstrument, perfilInstrumento]);
 
   return (
-    <div className="visor-immersive-container" style={{ backgroundImage: `url(${BACKGROUND_URL})` }}>
+    <div className="visor-immersive-container" style={{ backgroundImage: `url(${backgroundImage})` }}>
       <div className="visor-immersive-overlay" />
 
       <div className="visor-immersive-content">
@@ -74,22 +75,7 @@ export default function VisorInstrumento() {
             <div className="canvas-wrapper" role="img" aria-label={`Visor 3D - ${instrumentLabel}`}>
               {effectiveModelPath ? (
                 <CanvasErrorBoundary>
-                  <Canvas
-                    camera={{ position: [0, 0, 5], fov: 60 }}
-                    gl={{ alpha: true }}
-                    style={{ width: '100%', height: '100%' }}
-                  >
-                    <ambientLight intensity={0.75} />
-                    <directionalLight position={[5, 8, 2]} intensity={1.2} />
-                    <directionalLight position={[-5, 3, -4]} intensity={0.45} />
-                    <spotLight position={[0, 8, 8]} intensity={0.8} angle={0.25} penumbra={0.5} />
-
-                    <Suspense fallback={<div className="canvas-loading">Cargando modelo 3D…</div>}>
-                      <InstrumentoModel modelPath={effectiveModelPath} />
-                    </Suspense>
-
-                    <OrbitControls enableZoom enablePan enableRotate />
-                  </Canvas>
+                  <CanvasContent modelPath={effectiveModelPath} />
                 </CanvasErrorBoundary>
               ) : (
                 <div className="canvas-no-model">
@@ -122,5 +108,61 @@ export default function VisorInstrumento() {
         </div>
       </div>
     </div>
+  );
+}
+
+function CanvasContent({ modelPath }) {
+  const [glLost, setGlLost] = useState(false);
+
+  const handleCreated = ({ gl }) => {
+    const onLost = (event) => {
+      try {
+        event.preventDefault();
+      } catch (e) {
+        // ignore
+      }
+      console.warn('WebGL context lost; falling back to static UI.');
+      setGlLost(true);
+    };
+
+    const onRestored = () => {
+      console.info('WebGL context restored; attempting to re-enable canvas.');
+      setGlLost(false);
+    };
+
+    gl.domElement.addEventListener('webglcontextlost', onLost);
+    gl.domElement.addEventListener('webglcontextrestored', onRestored);
+  };
+
+  if (glLost) {
+    return (
+      <div className="canvas-error p-3 text-center bg-light border rounded-3" style={{ minHeight: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div>
+          <h5 className="mb-2">Visor 3D no disponible</h5>
+          <p className="text-muted small mb-0">El navegador perdió el contexto WebGL. Puedes recargar la vista o continuar con la información textual del instrumento.</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <Canvas
+      camera={{ position: [0, 0, 5], fov: 60 }}
+      dpr={[1, 1.5]}
+      gl={{ alpha: true, antialias: true, preserveDrawingBuffer: false, powerPreference: 'low-power' }}
+      style={{ width: '100%', height: '100%' }}
+      onCreated={handleCreated}
+    >
+      <ambientLight intensity={0.75} />
+      <directionalLight position={[5, 8, 2]} intensity={1.2} />
+      <directionalLight position={[-5, 3, -4]} intensity={0.45} />
+      <spotLight position={[0, 8, 8]} intensity={0.8} angle={0.25} penumbra={0.5} />
+
+      <Suspense fallback={<div className="canvas-loading">Cargando modelo 3D…</div>}>
+        <InstrumentoModel modelPath={modelPath} />
+      </Suspense>
+
+      <OrbitControls enableZoom enablePan enableRotate />
+    </Canvas>
   );
 }

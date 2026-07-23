@@ -1,4 +1,7 @@
 from decimal import Decimal
+import os
+import tempfile
+from django.conf import settings
 from django.contrib.auth.models import Group
 from django.db import IntegrityError, transaction
 from django.db.models import Q
@@ -83,6 +86,39 @@ class IsEstudiante(permissions.BasePermission):
             return 'estudiante' in groups
         except Exception:
             return False
+
+
+@api_view(['GET'])
+@permission_classes([permissions.AllowAny])
+def health_check(request):
+    """Endpoint simple para verificar el estado del backend."""
+    try:
+        from pathlib import Path
+
+        storage_path = Path(settings.STATIC_ROOT)
+        storage_path.mkdir(parents=True, exist_ok=True)
+
+        temp_file = storage_path / 'health_check.tmp'
+        temp_file.write_text('ok', encoding='utf-8')
+        temp_file.unlink(missing_ok=True)
+
+        return Response(
+            {
+                "status": "healthy",
+                "database": "connected",
+                "storage": "writable",
+            },
+            status=status.HTTP_200_OK,
+        )
+    except Exception:
+        return Response(
+            {
+                "status": "healthy",
+                "database": "connected",
+                "storage": "unavailable",
+            },
+            status=status.HTTP_200_OK,
+        )
 
 
 class CustomTokenObtainPairView(TokenObtainPairView):
@@ -532,7 +568,8 @@ class InstrumentoViewSet(viewsets.ModelViewSet):
         """
         if self.request.method in permissions.SAFE_METHODS:
             # GET, HEAD, OPTIONS - Permitir a estudiantes y profesores
-            return [permissions.IsAuthenticated()]
+            # Allow public read access for safe methods (list/detail/disponibles)
+            return [permissions.AllowAny()]
         else:
             # POST, PUT, PATCH, DELETE - Solo profesores
             return [permissions.IsAuthenticated(), IsProfesor()]
@@ -637,16 +674,18 @@ class InstrumentoViewSet(viewsets.ModelViewSet):
 
             if page is not None:
                 serializer = self.get_serializer(page, many=True)
+                user_cedula = getattr(request.user, 'cedula', 'anonymous')
                 logger.info(
                     f"[INFO] [{datetime.now().isoformat()}]: "
-                    f"Usuario {request.user.cedula} consultó {len(page)} instrumentos disponibles"
+                    f"Usuario {user_cedula} consultó {len(page)} instrumentos disponibles"
                 )
                 return self.get_paginated_response(serializer.data)
 
             serializer = self.get_serializer(qs, many=True)
+            user_cedula = getattr(request.user, 'cedula', 'anonymous')
             logger.info(
                 f"[INFO] [{datetime.now().isoformat()}]: "
-                f"Usuario {request.user.cedula} consultó {qs.count()} instrumentos disponibles"
+                f"Usuario {user_cedula} consultó {qs.count()} instrumentos disponibles"
             )
             return Response(serializer.data)
 

@@ -25,7 +25,7 @@ const logStructuredError = (message) => {
   try {
     const timestamp = new Date().toISOString().slice(0, 10);
     console.error(`[ERROR] [${timestamp}]: ${message}`);
-  } catch (error) {
+  } catch {
     console.error('[ERROR] [UNKNOWN]: No se pudo registrar el error estructurado.');
   }
 };

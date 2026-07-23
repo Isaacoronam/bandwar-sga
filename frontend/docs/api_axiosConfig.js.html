@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: api/axiosConfig.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: api/axiosConfig.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>import axios from 'axios';
+
+/**
+ * Configuración centralizada del cliente HTTP para Bandwar.
+ * Proporciona autenticación JWT, renovación de sesión y manejo defensivo de errores.
+ * @module api/axiosConfig
+ */
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+
+const STORAGE_KEYS = {
+  ACCESS_TOKEN: 'access_token',
+  REFRESH_TOKEN: 'refresh_token',
+  USUARIO: 'usuario',
+};
+
+const getAccessToken = () => localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
+const getRefreshToken = () => localStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
+
+/**
+ * Registra un error con formato estructurado compatible con la trazabilidad del MVP.
+ * @param {string} message - Mensaje de error a registrar.
+ */
+const logStructuredError = (message) => {
+  try {
+    const timestamp = new Date().toISOString().slice(0, 10);
+    console.error(`[ERROR] [${timestamp}]: ${message}`);
+  } catch (error) {
+    console.error('[ERROR] [UNKNOWN]: No se pudo registrar el error estructurado.');
+  }
+};
+
+const clearSessionAndRedirect = () => {
+  try {
+    localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
+    localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
+    localStorage.removeItem(STORAGE_KEYS.USUARIO);
+  } catch (err) {
+    logStructuredError(`No se pudo limpiar el almacenamiento local antes de redirigir: ${err?.message || err}`);
+  }
+
+  window.location.href = '/login';
+};
+
+const api = axios.create({
+  baseURL: API_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+api.interceptors.request.use(
+  (config) => {
+    const token = getAccessToken();
+    if (token) {
+      config.headers = config.headers || {};
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    logStructuredError(`Fallo en la solicitud HTTP: ${error?.message || error}`);
+    return Promise.reject(error);
+  },
+);
+
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
+
+    if (!originalRequest || originalRequest._retry) {
+      return Promise.reject(error);
+    }
+
+    if (error.response?.status === 401) {
+      originalRequest._retry = true;
+      const refreshToken = getRefreshToken();
+
+      if (refreshToken) {
+        try {
+          const refreshResponse = await axios.post(
+            `${API_URL}/api/token/refresh/`,
+            { refresh: refreshToken },
+            { headers: { 'Content-Type': 'application/json' } },
+          );
+
+          const newAccessToken = refreshResponse.data?.access;
+          if (newAccessToken) {
+            localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, newAccessToken);
+            api.defaults.headers.common.Authorization = `Bearer ${newAccessToken}`;
+            originalRequest.headers = originalRequest.headers || {};
+            originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+            return api(originalRequest);
+          }
+        } catch (refreshError) {
+          logStructuredError(`No se pudo renovar el token JWT: ${refreshError?.message || refreshError}`);
+          clearSessionAndRedirect();
+          return Promise.reject(refreshError);
+        }
+      }
+
+      clearSessionAndRedirect();
+    }
+
+    logStructuredError(`Respuesta HTTP con error ${error?.response?.status || 'desconocido'}: ${error?.message || error}`);
+    return Promise.reject(error);
+  },
+);
+
+export default api;
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-api_axiosConfig.html">api/axiosConfig</a></li></ul><h3>Global</h3><ul><li><a href="global.html#API_ENDPOINTS">API_ENDPOINTS</a></li><li><a href="global.html#App">App</a></li><li><a href="global.html#AppRoutes">AppRoutes</a></li><li><a href="global.html#EstudianteVisorInstrumento">EstudianteVisorInstrumento</a></li><li><a href="global.html#GestionInstrumentos">GestionInstrumentos</a></li><li><a href="global.html#Loader">Loader</a></li><li><a href="global.html#Login">Login</a></li><li><a href="global.html#ModalEnDesarrollo">ModalEnDesarrollo</a></li><li><a href="global.html#Model">Model</a></li><li><a href="global.html#Navbar">Navbar</a></li><li><a href="global.html#ProfesorDashboard">ProfesorDashboard</a></li><li><a href="global.html#ProtectedRoute">ProtectedRoute</a></li><li><a href="global.html#STORAGE_KEYS">STORAGE_KEYS</a></li><li><a href="global.html#StorageManager">StorageManager</a></li><li><a href="global.html#StudentOnlyRoute">StudentOnlyRoute</a></li><li><a href="global.html#Toast">Toast</a></li><li><a href="global.html#Visor3D">Visor3D</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.5</a> on Mon Jul 06 2026 19:21:24 GMT-0400 (hora de Venezuela)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>
